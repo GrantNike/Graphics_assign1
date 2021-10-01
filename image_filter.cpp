@@ -9,11 +9,11 @@ Image Processing Application
 
 #include <stdlib.h>
 
-
 #include <stdio.h>
 #include <malloc.h>
 #include <GL/glut.h>
 #include <FreeImage.h>
+#include <vector>
 
 //the pixel structure
 typedef struct {
@@ -22,6 +22,9 @@ typedef struct {
 
 //the global structure
 typedef struct {
+	std::vector<std::vector<pixel>> working_buff;
+	std::vector<std::vector<pixel>> temporary_buff;
+	std::vector<std::vector<pixel>> saving_buff;
 	pixel *work_buff;
 	pixel *temp_buff;
 	pixel *save_buff;
@@ -32,7 +35,7 @@ glob global;
 enum {MENU_FILTER, MENU_SAVE, MENU_TRIANGLE, MENU_RESET, MENU_QUIT};
 
 //read image
-pixel *read_img(char *name, int *width, int *height) {
+std::vector<std::vector<pixel>> read_img(char *name, int *width, int *height) {
 	FIBITMAP *image;
 	int i, j, pnum;
 	RGBQUAD aPixel;
@@ -41,11 +44,20 @@ pixel *read_img(char *name, int *width, int *height) {
 	if ((image = FreeImage_Load(FIF_TIFF, name, 0)) == NULL) {
 		return NULL;
 	}
+
 	*width = FreeImage_GetWidth(image);
 	*height = FreeImage_GetHeight(image);
-
+	std::vector<std::vector<pixel>> data1;
 	data = (pixel *)malloc((*height)*(*width)*sizeof(pixel *));
 	pnum = 0;
+	for(int x=0;x<(*width);x++){
+		for(int y=0;y<(*height);y++){
+			FreeImage_GetPixelColor(image, x, y, &aPixel);
+			data1[i][j].r = (aPixel.rgbRed);
+			data1[i][j].g = (aPixel.rgbGreen);
+			data1[i][j].b = (aPixel.rgbBlue);
+		}
+	}
 	for (i = 0; i < (*height); i++) {
 		for (j = 0; j < (*width); j++) {
 			FreeImage_GetPixelColor(image, j, i, &aPixel);
@@ -55,7 +67,7 @@ pixel *read_img(char *name, int *width, int *height) {
 		}
 	}
 	FreeImage_Unload(image);
-	return data;
+	return data1;
 }//read_img
 
 //write_img
@@ -95,7 +107,7 @@ void display_image(void)
 // Read the screen image back to the data buffer after drawing to it
 void draw_triangle(void)
 {
-	glDrawPixels(global.w, global.h, GL_RGB, GL_UNSIGNED_BYTE, (GLubyte*)global.work_buff);
+	glDrawPixels(global.w, global.h, GL_RGB, GL_UNSIGNED_BYTE, (GLubyte*)global.working_buff.data());
 	glBegin(GL_TRIANGLES);
 	glColor3f(1.0, 0, 0);
 	glVertex2i(rand() % global.w, rand() % global.h);
@@ -105,7 +117,7 @@ void draw_triangle(void)
 	glVertex2i(rand() % global.w, rand() % global.h);
 	glEnd();
 	glFlush();
-	glReadPixels(0, 0, global.w, global.h, GL_RGB, GL_UNSIGNED_BYTE, (GLubyte*)global.work_buff);
+	glReadPixels(0, 0, global.w, global.h, GL_RGB, GL_UNSIGNED_BYTE, (GLubyte*)global.working_buff.data());
 }
 
 //Creates a deep copy of a pixel struct array
@@ -143,108 +155,9 @@ void greyscale_filter(pixel* work_buff, pixel* temp_buff, int myIm_Width, int my
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
-void monochrome_filter(pixel* work_buff, pixel* temp_buff, int myIm_Width, int myIm_Height){
-	int i, j;
-	//Go through each pixel in image...
-	for (i = 0; i < myIm_Height; i++) {
-		for (j = 0; j < myIm_Width; j++) {
-			int rgb_sum = work_buff[i*myIm_Width + j].r + work_buff[i*myIm_Width + j].g + work_buff[i*myIm_Width + j].b;
-			if(rgb_sum/3 > (0.5*255)){
-				temp_buff[i*myIm_Width + j].r = 255;
-				temp_buff[i*myIm_Width + j].g = 255;
-				temp_buff[i*myIm_Width + j].b = 255;
-			}
-			else{
-				temp_buff[i*myIm_Width + j].r = 0;
-				temp_buff[i*myIm_Width + j].g = 0;
-				temp_buff[i*myIm_Width + j].b = 0;
-			}
-		}
-	}
-	//Write finalized changes to display buffer
-	global.work_buff = deep_copy(global.temp_buff);
-	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
-}
-
-void ntsc_filter(pixel* work_buff, pixel* temp_buff, int myIm_Width, int myIm_Height){
-int i, j;
-	//Go through each pixel in image...
-	for (i = 0; i < myIm_Height; i++) {
-		for (j = 0; j < myIm_Width; j++) {
-			int rgb_sum = (int)((0.299)*work_buff[i*myIm_Width + j].r) + (int)((0.587)*work_buff[i*myIm_Width + j].g) + (int)((0.114)*work_buff[i*myIm_Width + j].b);
-			
-			temp_buff[i*myIm_Width + j].r = rgb_sum;
-			temp_buff[i*myIm_Width + j].g = rgb_sum;
-			temp_buff[i*myIm_Width + j].b = rgb_sum;
-		}
-	}
-	//Write finalized changes to display buffer
-	global.work_buff = deep_copy(global.temp_buff);
-	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
-}
-
-void swap_channel(pixel* work_buff, pixel* temp_buff, int myIm_Width, int myIm_Height){
-int i, j;
-	//Go through each pixel in image...
-	for (i = 0; i < myIm_Height; i++) {
-		for (j = 0; j < myIm_Width; j++) {
-			int temp = temp_buff[i*myIm_Width + j].r;
-			temp_buff[i*myIm_Width + j].r = temp_buff[i*myIm_Width + j].g;
-			temp_buff[i*myIm_Width + j].g = temp_buff[i*myIm_Width + j].b;
-			temp_buff[i*myIm_Width + j].b = temp;
-		}
-	}
-	//Write finalized changes to display buffer
-	global.work_buff = deep_copy(global.temp_buff);
-	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
-}
-
-void pure_red_filter(pixel* work_buff, pixel* temp_buff, int myIm_Width, int myIm_Height){
-int i, j;
-	//Go through each pixel in image...
-	for (i = 0; i < myIm_Height; i++) {
-		for (j = 0; j < myIm_Width; j++) {
-			temp_buff[i*myIm_Width + j].g = 0;
-			temp_buff[i*myIm_Width + j].b = 0;
-		}
-	}
-	//Write finalized changes to display buffer
-	global.work_buff = deep_copy(global.temp_buff);
-	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
-}
-
-void pure_green_filter(pixel* work_buff, pixel* temp_buff, int myIm_Width, int myIm_Height){
-int i, j;
-	//Go through each pixel in image...
-	for (i = 0; i < myIm_Height; i++) {
-		for (j = 0; j < myIm_Width; j++) {
-			temp_buff[i*myIm_Width + j].r = 0;
-			temp_buff[i*myIm_Width + j].b = 0;
-		}
-	}
-	//Write finalized changes to display buffer
-	global.work_buff = deep_copy(global.temp_buff);
-	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
-}
-
-void pure_blue_filter(pixel* work_buff, pixel* temp_buff, int myIm_Width, int myIm_Height){
-int i, j;
-	//Go through each pixel in image...
-	for (i = 0; i < myIm_Height; i++) {
-		for (j = 0; j < myIm_Width; j++) {
-			temp_buff[i*myIm_Width + j].r = 0;
-			temp_buff[i*myIm_Width + j].g = 0;
-		}
-	}
-	//Write finalized changes to display buffer
-	global.work_buff = deep_copy(global.temp_buff);
-	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
-}
-
 //Resets image to the unfiltered original
 void reset_image(){
 	global.work_buff = deep_copy(global.save_buff);
-	global.temp_buff = deep_copy(global.save_buff);
 	glutPostRedisplay();
 }
 
@@ -255,16 +168,16 @@ void keyboard(unsigned char key, int x, int y)
 	switch (key)
 	{
 	case 0x1B:
-	case'q':
+	case 'q':
 	case 'Q':
 		exit(0);
 		break;
-	case'r':
-	case'R':
+	case 'r':
+	case 'R':
 		reset_image();
 		break;
-	case's':
-	case'S':
+	case 's':
+	case 'S':
 		printf("SAVING IMAGE: backup.tif\n");
 		write_img("backup.tif", global.work_buff, global.w, global.h);
 		break;
@@ -272,25 +185,9 @@ void keyboard(unsigned char key, int x, int y)
 	case 'T':
 		draw_triangle();
 		break;
-	case'g':
-	case'G':
+	case 'f':
+	case 'F':
 		greyscale_filter(global.work_buff, global.temp_buff, global.w, global.h);
-		break;
-	case'm':
-	case'M':
-		monochrome_filter(global.work_buff, global.temp_buff, global.w, global.h);
-		break;
-	case'n':
-	case'N':
-		ntsc_filter(global.work_buff, global.temp_buff, global.w, global.h);
-		break;
-	case'c':
-	case'C':
-		swap_channel(global.work_buff, global.temp_buff, global.w, global.h);
-		break;
-	case'p':
-	case'P':
-		pure_red_filter(global.work_buff, global.temp_buff, global.w, global.h);
 		break;
 	}
 }//keyboard
@@ -343,14 +240,14 @@ void init_menu()
 
 int main(int argc, char** argv)
 {
-	global.save_buff = read_img(FILENAME, &global.w, &global.h);
-	global.work_buff = read_img(FILENAME, &global.w, &global.h);
-	global.temp_buff = global.work_buff;
-	if (global.save_buff == NULL)
+	global.saving_buff = read_img(FILENAME, &global.w, &global.h);
+	global.working_buff = read_img(FILENAME, &global.w, &global.h);
+	global.temporary_buff = global.working_buff;
+	/*if (global.save_buff == NULL)
 	{
 		printf("Error loading image file %s\n", FILENAME);
 		return 1;
-	}
+	}*/
 
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
