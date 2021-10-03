@@ -34,7 +34,7 @@ typedef struct {
 glob global;
 
 enum {MENU_GREY, MENU_MONO, MENU_NTSC, MENU_SWAP, MENU_PURE_RED, MENU_PURE_GREEN, MENU_PURE_BLUE, 
-MENU_INTENSE_RED, MENU_INTENSE_GREEN, MENU_MAX, MENU_INTENSE_BLUE, MENU_SAVE, MENU_RESET, MENU_QUIT};
+MENU_INTENSE_RED, MENU_INTENSE_GREEN, MENU_MAX, MENU_MIN, MENU_INTENSE_BLUE, MENU_SAVE, MENU_RESET, MENU_QUIT};
 
 //read image
 pixel *read_img(char *name, int *width, int *height) {
@@ -230,7 +230,7 @@ void pure_blue_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int my
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
-void max_intensity(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
+void max_min_intensity(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height, bool max){
 	int i,j;
 	int red_arr[9];
 	int green_arr[9];
@@ -299,9 +299,19 @@ void max_intensity(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_
 			}
 
 			//Set value to max of 9 values
-			temp_buff[i*myIm_Width + j].r = *std::max_element(red_arr,red_arr+9);
-			temp_buff[i*myIm_Width + j].g = *std::max_element(green_arr,green_arr+9);
-			temp_buff[i*myIm_Width + j].b = *std::max_element(blue_arr,blue_arr+9);
+			if(max){
+				temp_buff[i*myIm_Width + j].r = *std::max_element(red_arr,red_arr+9);
+				temp_buff[i*myIm_Width + j].g = *std::max_element(green_arr,green_arr+9);
+				temp_buff[i*myIm_Width + j].b = *std::max_element(blue_arr,blue_arr+9);
+			}
+
+			//Or set value to min of 9 values
+			else{
+				temp_buff[i*myIm_Width + j].r = *std::min_element(red_arr,red_arr+9);
+				temp_buff[i*myIm_Width + j].g = *std::min_element(green_arr,green_arr+9);
+				temp_buff[i*myIm_Width + j].b = *std::min_element(blue_arr,blue_arr+9);
+			}
+			
 		}
 	}
 	//Write finalized changes to display buffer
@@ -506,7 +516,10 @@ void menuFunc(int value)
 			blue_intensify(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
 			break;
 		case MENU_MAX:
-			max_intensity(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			max_min_intensity(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,true);
+			break;
+		case MENU_MIN:
+			max_min_intensity(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,false);
 			break;
 	}
 }//menuFunc
@@ -536,6 +549,7 @@ void init_menu()
 	glutAddMenuEntry("NTSC Filter", MENU_NTSC);
 	glutAddMenuEntry("Channel Swap Filter", MENU_SWAP);
 	glutAddMenuEntry("Max Intensity Filter", MENU_MAX);
+	glutAddMenuEntry("Min Intensity Filter", MENU_MIN);
 	glutAddSubMenu("Pure RGB Filter", pure_filter);
 	glutAddSubMenu("RGB Intensify Filter", intensify_filter);
 
