@@ -8,7 +8,9 @@ Image Processing Application
 #define FILENAME "img.tif"
 
 #include <stdlib.h>
-
+//For max element of array
+#include <bits/stdc++.h>
+//For c++ io streams
 #include <iostream>
 #include <stdio.h>
 #include <malloc.h>
@@ -31,7 +33,8 @@ typedef struct {
 } glob;
 glob global;
 
-enum {MENU_GREY, MENU_MONO, MENU_NTSC, MENU_SWAP, MENU_PURE_RED, MENU_PURE_GREEN, MENU_PURE_BLUE, MENU_SAVE, MENU_RESET, MENU_QUIT};
+enum {MENU_GREY, MENU_MONO, MENU_NTSC, MENU_SWAP, MENU_PURE_RED, MENU_PURE_GREEN, MENU_PURE_BLUE, 
+MENU_INTENSE_RED, MENU_INTENSE_GREEN, MENU_MAX, MENU_INTENSE_BLUE, MENU_SAVE, MENU_RESET, MENU_QUIT};
 
 //read image
 pixel *read_img(char *name, int *width, int *height) {
@@ -214,12 +217,130 @@ int i, j;
 }
 
 void pure_blue_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
-int i, j;
+	int i, j;
 	//Go through each pixel in image...
 	for (i = y1; i < myIm_Height; i++) {
 		for (j = x1; j < myIm_Width; j++) {
 			temp_buff[i*myIm_Width + j].r = 0;
 			temp_buff[i*myIm_Width + j].g = 0;
+		}
+	}
+	//Write finalized changes to display buffer
+	global.work_buff = deep_copy(global.temp_buff);
+	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
+}
+
+void max_intensity(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
+	int i,j;
+	int red_arr[9];
+	int green_arr[9];
+	int blue_arr[9];
+	for(int k=0;k<9;k++){
+		red_arr[k] = 0;
+		green_arr[k] = 0;
+		blue_arr[k] = 0;
+	}
+	//Go through each pixel in image...
+	for (i = y1; i < myIm_Height; i++) {
+		for (j = x1; j < myIm_Width; j++) {
+			//Original Element
+			red_arr[0] = work_buff[i*myIm_Width + j].r;
+			green_arr[0] = work_buff[i*myIm_Width + j].g;
+			blue_arr[0] = work_buff[i*myIm_Width + j].b;
+			//Top Elements
+			if(i != myIm_Height){
+				//Top Middle
+				red_arr[1] = work_buff[(i+1)*myIm_Width + j].r;
+				green_arr[1] = work_buff[(i+1)*myIm_Width + j].g;
+				blue_arr[1] = work_buff[(i+1)*myIm_Width + j].b;
+				if(j != 0){
+					//Top Left
+					red_arr[2] = work_buff[(i+1)*myIm_Width + (j-1)].r;
+					green_arr[2] = work_buff[(i+1)*myIm_Width + (j-1)].g;
+					blue_arr[2] = work_buff[(i+1)*myIm_Width + (j-1)].b;
+				}
+				if(j != myIm_Width){
+					//Top Right
+					red_arr[3] = work_buff[(i+1)*myIm_Width + (j+1)].r;
+					green_arr[3] = work_buff[(i+1)*myIm_Width + (j+1)].g;
+					blue_arr[3] = work_buff[(i+1)*myIm_Width + (j+1)].b;
+				}
+			}
+			//Bottom Elements
+			if(i != 0){
+				//Bottom Middle
+				red_arr[4] = work_buff[(i-1)*myIm_Width + j].r;
+				green_arr[4] = work_buff[(i-1)*myIm_Width + j].g;
+				blue_arr[4] = work_buff[(i-1)*myIm_Width + j].b;
+				if(j != 0){
+					//Bottom Left
+					red_arr[5] = work_buff[(i-1)*myIm_Width + (j-1)].r;
+					green_arr[5] = work_buff[(i-1)*myIm_Width + (j-1)].g;
+					blue_arr[5] = work_buff[(i-1)*myIm_Width + (j-1)].b;
+				}
+				if(j != myIm_Width){
+					//Bottom Right
+					red_arr[6] = work_buff[(i-1)*myIm_Width + (j+1)].r;
+					green_arr[6] = work_buff[(i-1)*myIm_Width + (j+1)].g;
+					blue_arr[6] = work_buff[(i-1)*myIm_Width + (j+1)].b;
+				}
+			}
+			//Left Middle
+			if(j != 0){
+				red_arr[7] = work_buff[i*myIm_Width + (j-1)].r;
+				green_arr[7] = work_buff[i*myIm_Width + (j-1)].g;
+				blue_arr[7] = work_buff[i*myIm_Width + (j-1)].b;
+			}
+			//Right Middle
+			if(j != myIm_Width){
+				red_arr[8] = work_buff[i*myIm_Width + (j+1)].r;
+				green_arr[8] = work_buff[i*myIm_Width + (j+1)].g;
+				blue_arr[8] = work_buff[i*myIm_Width + (j+1)].b;
+			}
+
+			//Set value to max of 9 values
+			temp_buff[i*myIm_Width + j].r = *std::max_element(red_arr,red_arr+9);
+			temp_buff[i*myIm_Width + j].g = *std::max_element(green_arr,green_arr+9);
+			temp_buff[i*myIm_Width + j].b = *std::max_element(blue_arr,blue_arr+9);
+		}
+	}
+	//Write finalized changes to display buffer
+	global.work_buff = deep_copy(global.temp_buff);
+	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
+}
+
+void red_intensify(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
+	int i,j;
+	//Go through each pixel in image...
+	for (i = y1; i < myIm_Height; i++) {
+		for (j = x1; j < myIm_Width; j++) {
+			temp_buff[i*myIm_Width + j].r = (int)(temp_buff[i*myIm_Width + j].r*1.35);
+		}
+	}
+	//Write finalized changes to display buffer
+	global.work_buff = deep_copy(global.temp_buff);
+	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
+}
+
+void green_intensify(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
+	int i,j;
+	//Go through each pixel in image...
+	for (i = y1; i < myIm_Height; i++) {
+		for (j = x1; j < myIm_Width; j++) {
+			temp_buff[i*myIm_Width + j].g = (int)(temp_buff[i*myIm_Width + j].g*1.2);
+		}
+	}
+	//Write finalized changes to display buffer
+	global.work_buff = deep_copy(global.temp_buff);
+	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
+}
+
+void blue_intensify(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
+	int i,j;
+	//Go through each pixel in image...
+	for (i = y1; i < myIm_Height; i++) {
+		for (j = x1; j < myIm_Width; j++) {
+			temp_buff[i*myIm_Width + j].b = (int)(temp_buff[i*myIm_Width + j].b*1.2);
 		}
 	}
 	//Write finalized changes to display buffer
@@ -375,6 +496,18 @@ void menuFunc(int value)
 		case MENU_PURE_BLUE:
 			pure_blue_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
 			break;
+		case MENU_INTENSE_RED:
+			red_intensify(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			break;
+		case MENU_INTENSE_GREEN:
+			green_intensify(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			break;
+		case MENU_INTENSE_BLUE:
+			blue_intensify(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			break;
+		case MENU_MAX:
+			max_intensity(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			break;
 	}
 }//menuFunc
 
@@ -387,6 +520,11 @@ void show_keys()
 //Glut menu set up
 void init_menu()
 {
+	int intensify_filter = glutCreateMenu(&menuFunc);
+	glutAddMenuEntry("Intensify Red Filter", MENU_INTENSE_RED);
+	glutAddMenuEntry("Intensify Green Filter", MENU_INTENSE_GREEN);
+	glutAddMenuEntry("Intensify Blue Filter", MENU_INTENSE_BLUE);
+
 	int pure_filter = glutCreateMenu(&menuFunc);
 	glutAddMenuEntry("Pure Red Filter", MENU_PURE_RED);
 	glutAddMenuEntry("Pure Green Filter", MENU_PURE_GREEN);
@@ -397,7 +535,9 @@ void init_menu()
 	glutAddMenuEntry("Monochrome Filter", MENU_MONO);
 	glutAddMenuEntry("NTSC Filter", MENU_NTSC);
 	glutAddMenuEntry("Channel Swap Filter", MENU_SWAP);
+	glutAddMenuEntry("Max Intensity Filter", MENU_MAX);
 	glutAddSubMenu("Pure RGB Filter", pure_filter);
+	glutAddSubMenu("RGB Intensify Filter", intensify_filter);
 
 	int main_menu = glutCreateMenu(&menuFunc);
 	glutAddSubMenu("Filter", sub_menu);
@@ -411,8 +551,8 @@ void init_menu()
 int main(int argc, char** argv)
 {
 	global.save_buff = read_img(FILENAME, &global.w, &global.h);
-	global.work_buff = read_img(FILENAME, &global.w, &global.h);
-	global.temp_buff = global.work_buff;
+	global.work_buff = deep_copy(global.save_buff);
+	global.temp_buff = deep_copy(global.work_buff);
 	//Initialize rectangle corners
 	reset_filter_area();
 	if (global.save_buff == NULL)
