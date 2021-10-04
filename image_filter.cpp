@@ -8,6 +8,10 @@ Image Processing Application
 #define FILENAME "img.tif"
 
 #include <stdlib.h>
+//For Random
+#include <cstdlib> 
+//Used as parameter to random seed
+#include <ctime> 
 //For max element of array
 #include <bits/stdc++.h>
 //For c++ io streams
@@ -16,7 +20,9 @@ Image Processing Application
 #include <malloc.h>
 #include <GL/glut.h>
 #include <FreeImage.h>
-
+//For openMP parallel library
+#include <omp.h>
+int NUM_THREADS = omp_get_max_threads();
 //the pixel structure
 typedef struct {
 	GLubyte r, g, b;
@@ -33,7 +39,7 @@ typedef struct {
 } glob;
 glob global;
 
-enum {MENU_GREY, MENU_MONO, MENU_NTSC, MENU_SWAP, MENU_PURE_RED, MENU_PURE_GREEN, MENU_PURE_BLUE, 
+enum {MENU_GREY, MENU_MONO, MENU_NTSC, MENU_SWAP, MENU_PURE_RED, MENU_PURE_GREEN, MENU_PURE_BLUE, MENU_QUANT, MENU_QUANT_RAND,
 MENU_INTENSE_RED, MENU_INTENSE_GREEN, MENU_MAX, MENU_MIN, MENU_INTENSE_BLUE, MENU_SAVE, MENU_RESET, MENU_QUIT};
 
 //read image
@@ -358,12 +364,88 @@ void blue_intensify(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
+void quantize_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height, bool random){
+	//Initialize colour palette
+	std::vector<pixel> colour_palette;
+	//Generate a random colour palette
+	if(random){
+		int size = 100; // Number of colours in palette
+		for (int i=0;i<size;i++){
+			pixel colour;
+			colour.r = rand()%256;
+			colour.g = rand()%256;
+			colour.b = rand()%256;
+			colour_palette.push_back(colour);
+		}
+	}
+	//Use predefined colour palette
+	else{
+		pixel pure_red;
+		pure_red.r = 100;
+		pure_red.g = 0;
+		pure_red.b = 0;
+		colour_palette.push_back(pure_red);
+		pixel pure_green;
+		pure_red.r = 0;
+		pure_red.g = 100;
+		pure_red.b = 0;
+		colour_palette.push_back(pure_green);
+		pixel pure_blue;
+		pure_red.r = 0;
+		pure_red.g = 0;
+		pure_red.b = 100;
+		colour_palette.push_back(pure_blue);
+		pixel white;
+		white.r = 255;
+		white.g = 255;
+		white.b = 255;
+		colour_palette.push_back(white);
+		pixel black;
+		black.r = 0;
+		black.g = 0;
+		black.b = 0;
+		colour_palette.push_back(black);
+		pixel grey;
+		grey.r = 128;
+		grey.g = 128;
+		grey.b = 128;
+		colour_palette.push_back(grey);
+	}
+
+	//Go through each pixel in image...
+	# pragma omp parallel for num_threads(NUM_THREADS) collapse(2)
+	for (int i = y1; i < myIm_Height; i++) {
+		for (int j = x1; j < myIm_Width; j++) {
+			//Find closest colour in palette to each pixel using euclidean distance
+			pixel closest_colour = colour_palette.front();
+			float min_dist = sqrt((temp_buff[i*myIm_Width + j].r - closest_colour.r)^2 + (temp_buff[i*myIm_Width + j].g - closest_colour.g)^2 + (temp_buff[i*myIm_Width + j].b - closest_colour.b)^2);
+			# pragma omp parallel for num_threads(NUM_THREADS)
+			for(pixel p:colour_palette){
+				float euclid_dist = sqrt((temp_buff[i*myIm_Width + j].r - p.r)^2 + (temp_buff[i*myIm_Width + j].g - p.g)^2 + (temp_buff[i*myIm_Width + j].b - p.b)^2);
+				if(euclid_dist < min_dist){
+					min_dist = euclid_dist;
+					closest_colour = p;
+				}
+			}
+			//Assign closest colour to current pixel
+			temp_buff[i*myIm_Width + j].r = closest_colour.r;
+			temp_buff[i*myIm_Width + j].g = closest_colour.g;
+			temp_buff[i*myIm_Width + j].b = closest_colour.b;
+		}
+	}
+
+	//Write finalized changes to display buffer
+	global.work_buff = deep_copy(global.temp_buff);
+	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
+}
+
 //Resets image to the unfiltered original
 void reset_image(){
 	global.work_buff = deep_copy(global.save_buff);
 	global.temp_buff = deep_copy(global.save_buff);
 	glutPostRedisplay();
 }
+
 //Sets x1,y1 coordinates to left mouse click coordinates
 void set_coordinates(int button, int state, int x, int y){
 	int count = 0;
@@ -521,6 +603,12 @@ void menuFunc(int value)
 		case MENU_MIN:
 			max_min_intensity(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,false);
 			break;
+		case MENU_QUANT:
+			quantize_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2, false);
+			break;
+		case MENU_QUANT_RAND:
+			quantize_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2, true);
+			break;
 	}
 }//menuFunc
 
@@ -533,6 +621,10 @@ void show_keys()
 //Glut menu set up
 void init_menu()
 {
+	int quantize_filter = glutCreateMenu(&menuFunc);
+	glutAddMenuEntry("Random Colour Palette", MENU_QUANT_RAND);
+	glutAddMenuEntry("Preset Colour Palette", MENU_QUANT);
+
 	int intensify_filter = glutCreateMenu(&menuFunc);
 	glutAddMenuEntry("Intensify Red Filter", MENU_INTENSE_RED);
 	glutAddMenuEntry("Intensify Green Filter", MENU_INTENSE_GREEN);
@@ -550,6 +642,7 @@ void init_menu()
 	glutAddMenuEntry("Channel Swap Filter", MENU_SWAP);
 	glutAddMenuEntry("Max Intensity Filter", MENU_MAX);
 	glutAddMenuEntry("Min Intensity Filter", MENU_MIN);
+	glutAddSubMenu("Quantize Filter", quantize_filter);
 	glutAddSubMenu("Pure RGB Filter", pure_filter);
 	glutAddSubMenu("RGB Intensify Filter", intensify_filter);
 
@@ -564,6 +657,8 @@ void init_menu()
 
 int main(int argc, char** argv)
 {
+	//Create random seed for random number generation used in some filters
+	srand(time(NULL));
 	global.save_buff = read_img(FILENAME, &global.w, &global.h);
 	global.work_buff = deep_copy(global.save_buff);
 	global.temp_buff = deep_copy(global.work_buff);
