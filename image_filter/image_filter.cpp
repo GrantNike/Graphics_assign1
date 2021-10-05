@@ -782,8 +782,7 @@ void init_menu()
 }
 
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv){
 	//Create random seed for random number generation used in some filters
 	srand(time(NULL));
 	global.save_buff = read_img(FILENAME, &global.w, &global.h);
