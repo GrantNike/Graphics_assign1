@@ -325,6 +325,95 @@ void max_min_intensity(pixel* work_buff, pixel* temp_buff, int x1, int y1, int m
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
+void convolutional_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height, bool max, int* kernel){
+	int i,j;
+	int red_arr[9];
+	int green_arr[9];
+	int blue_arr[9];
+	for(int k=0;k<9;k++){
+		red_arr[k] = 0;
+		green_arr[k] = 0;
+		blue_arr[k] = 0;
+	}
+	//Go through each pixel in image...
+	for (i = y1; i < myIm_Height; i++) {
+		for (j = x1; j < myIm_Width; j++) {
+			//Original Element
+			red_arr[0] = work_buff[i*myIm_Width + j].r;
+			green_arr[0] = work_buff[i*myIm_Width + j].g;
+			blue_arr[0] = work_buff[i*myIm_Width + j].b;
+			//Top Elements
+			if(i != myIm_Height){
+				//Top Middle
+				red_arr[1] = work_buff[(i+1)*myIm_Width + j].r;
+				green_arr[1] = work_buff[(i+1)*myIm_Width + j].g;
+				blue_arr[1] = work_buff[(i+1)*myIm_Width + j].b;
+				if(j != 0){
+					//Top Left
+					red_arr[2] = work_buff[(i+1)*myIm_Width + (j-1)].r;
+					green_arr[2] = work_buff[(i+1)*myIm_Width + (j-1)].g;
+					blue_arr[2] = work_buff[(i+1)*myIm_Width + (j-1)].b;
+				}
+				if(j != myIm_Width){
+					//Top Right
+					red_arr[3] = work_buff[(i+1)*myIm_Width + (j+1)].r;
+					green_arr[3] = work_buff[(i+1)*myIm_Width + (j+1)].g;
+					blue_arr[3] = work_buff[(i+1)*myIm_Width + (j+1)].b;
+				}
+			}
+			//Bottom Elements
+			if(i != 0){
+				//Bottom Middle
+				red_arr[4] = work_buff[(i-1)*myIm_Width + j].r;
+				green_arr[4] = work_buff[(i-1)*myIm_Width + j].g;
+				blue_arr[4] = work_buff[(i-1)*myIm_Width + j].b;
+				if(j != 0){
+					//Bottom Left
+					red_arr[5] = work_buff[(i-1)*myIm_Width + (j-1)].r;
+					green_arr[5] = work_buff[(i-1)*myIm_Width + (j-1)].g;
+					blue_arr[5] = work_buff[(i-1)*myIm_Width + (j-1)].b;
+				}
+				if(j != myIm_Width){
+					//Bottom Right
+					red_arr[6] = work_buff[(i-1)*myIm_Width + (j+1)].r;
+					green_arr[6] = work_buff[(i-1)*myIm_Width + (j+1)].g;
+					blue_arr[6] = work_buff[(i-1)*myIm_Width + (j+1)].b;
+				}
+			}
+			//Left Middle
+			if(j != 0){
+				red_arr[7] = work_buff[i*myIm_Width + (j-1)].r;
+				green_arr[7] = work_buff[i*myIm_Width + (j-1)].g;
+				blue_arr[7] = work_buff[i*myIm_Width + (j-1)].b;
+			}
+			//Right Middle
+			if(j != myIm_Width){
+				red_arr[8] = work_buff[i*myIm_Width + (j+1)].r;
+				green_arr[8] = work_buff[i*myIm_Width + (j+1)].g;
+				blue_arr[8] = work_buff[i*myIm_Width + (j+1)].b;
+			}
+
+			//Set value to max of 9 values
+			if(max){
+				temp_buff[i*myIm_Width + j].r = *std::max_element(red_arr,red_arr+9);
+				temp_buff[i*myIm_Width + j].g = *std::max_element(green_arr,green_arr+9);
+				temp_buff[i*myIm_Width + j].b = *std::max_element(blue_arr,blue_arr+9);
+			}
+
+			//Or set value to min of 9 values
+			else{
+				temp_buff[i*myIm_Width + j].r = *std::min_element(red_arr,red_arr+9);
+				temp_buff[i*myIm_Width + j].g = *std::min_element(green_arr,green_arr+9);
+				temp_buff[i*myIm_Width + j].b = *std::min_element(blue_arr,blue_arr+9);
+			}
+			
+		}
+	}
+	//Write finalized changes to display buffer
+	global.work_buff = deep_copy(global.temp_buff);
+	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
+}
+
 void red_intensify(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 	int i,j;
 	//Go through each pixel in image...
