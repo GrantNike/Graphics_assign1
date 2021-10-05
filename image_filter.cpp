@@ -40,7 +40,7 @@ typedef struct {
 glob global;
 
 enum {MENU_GREY, MENU_MONO, MENU_NTSC, MENU_SWAP, MENU_PURE_RED, MENU_PURE_GREEN, MENU_PURE_BLUE, MENU_QUANT, MENU_QUANT_RAND,
-MENU_INTENSE_RED, MENU_INTENSE_GREEN, MENU_MAX, MENU_MIN, MENU_INTENSE_BLUE, MENU_SAVE, MENU_RESET, MENU_QUIT};
+MENU_INTENSE_RED, MENU_INTENSE_GREEN, MENU_MAX, MENU_MIN, MENU_INTENSE_BLUE, MENU_SAVE, MENU_RESET, MENU_QUIT, MENU_SIN, MENU_TAN};
 
 //read image
 pixel *read_img(char *name, int *width, int *height) {
@@ -439,6 +439,36 @@ void quantize_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myI
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
+void sine_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
+	//Go through each pixel in image and multiply r values by the sin of themselves, g values by cosine of themselves and b values by tan of themselves
+	//eg. red = red*sin(red)
+	for (int i = y1; i < myIm_Height; i++) {
+		for (int j = x1; j < myIm_Width; j++) {
+			temp_buff[i*myIm_Width + j].r = (int)abs((temp_buff[i*myIm_Width + j].r *tan(temp_buff[i*myIm_Width + j].r)));
+			temp_buff[i*myIm_Width + j].g = (int)abs((temp_buff[i*myIm_Width + j].g *sin(temp_buff[i*myIm_Width + j].g)));
+			temp_buff[i*myIm_Width + j].b = (int)abs((temp_buff[i*myIm_Width + j].b *cos(temp_buff[i*myIm_Width + j].b)));
+		}
+	}
+	//Write finalized changes to display buffer
+	global.work_buff = deep_copy(global.temp_buff);
+	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
+}
+
+void tan_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
+	//Go through each pixel in image and multiply rgb values by the tangent of themselves
+	//eg. red = red*tan(red)
+	for (int i = y1; i < myIm_Height; i++) {
+		for (int j = x1; j < myIm_Width; j++) {
+			temp_buff[i*myIm_Width + j].r = (int)abs((temp_buff[i*myIm_Width + j].r *tan(temp_buff[i*myIm_Width + j].r)));
+			temp_buff[i*myIm_Width + j].g = (int)abs((temp_buff[i*myIm_Width + j].g *tan(temp_buff[i*myIm_Width + j].g)));
+			temp_buff[i*myIm_Width + j].b = (int)abs((temp_buff[i*myIm_Width + j].b *tan(temp_buff[i*myIm_Width + j].b)));
+		}
+	}
+	//Write finalized changes to display buffer
+	global.work_buff = deep_copy(global.temp_buff);
+	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
+}
+
 //Resets image to the unfiltered original
 void reset_image(){
 	global.work_buff = deep_copy(global.save_buff);
@@ -609,6 +639,12 @@ void menuFunc(int value)
 		case MENU_QUANT_RAND:
 			quantize_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2, true);
 			break;
+		case MENU_SIN:
+			sine_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			break;
+		case MENU_TAN:
+			tan_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			break;
 	}
 }//menuFunc
 
@@ -642,6 +678,8 @@ void init_menu()
 	glutAddMenuEntry("Channel Swap Filter", MENU_SWAP);
 	glutAddMenuEntry("Max Intensity Filter", MENU_MAX);
 	glutAddMenuEntry("Min Intensity Filter", MENU_MIN);
+	glutAddMenuEntry("Sine Filter", MENU_SIN);
+	glutAddMenuEntry("Tangent Filter", MENU_TAN);
 	glutAddSubMenu("Quantize Filter", quantize_filter);
 	glutAddSubMenu("Pure RGB Filter", pure_filter);
 	glutAddSubMenu("RGB Intensify Filter", intensify_filter);
