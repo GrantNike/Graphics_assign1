@@ -336,6 +336,7 @@ void convolutional_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, in
 		blue_arr[k] = 0;
 	}
 	//Go through each pixel in image...
+	# pragma omp parallel for num_threads(NUM_THREADS) collapse(2) private(red_arr) private(green_arr) private(blue_arr)
 	for (int i = y1; i < myIm_Height; i++) {
 		for (int j = x1; j < myIm_Width; j++) {
 			//Original Element
@@ -408,15 +409,15 @@ void convolutional_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, in
 			blue_sum = (int)(blue_sum/9.0);
 			//Set new red value
 			if(red_sum < 0) temp_buff[i*myIm_Width + j].r = 0;
-			if(red_sum < 255)temp_buff[i*myIm_Width + j].r = 255;
+			if(red_sum > 255)temp_buff[i*myIm_Width + j].r = 255;
 			else temp_buff[i*myIm_Width + j].r = red_sum;
 			//Set new green value
 			if(green_sum < 0) temp_buff[i*myIm_Width + j].g = 0;
-			if(green_sum < 255)temp_buff[i*myIm_Width + j].g = 255;
+			if(green_sum > 255)temp_buff[i*myIm_Width + j].g = 255;
 			else temp_buff[i*myIm_Width + j].g = green_sum;
 			//Set new blue value
 			if(blue_sum < 0) temp_buff[i*myIm_Width + j].b = 0;
-			if(blue_sum < 255)temp_buff[i*myIm_Width + j].b = 255;
+			if(blue_sum > 255)temp_buff[i*myIm_Width + j].b = 255;
 			else temp_buff[i*myIm_Width + j].b = blue_sum;
 		}
 	}
@@ -734,8 +735,8 @@ void menuFunc(int value){
 			break;
 		case MENU_BLUR:
 			{
-				int kernel[] = {1,1,1,1,1,1,1,1,1}; 
-				convolutional_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,kernel);
+				int kernel[] = {1,1,1,1,1,1,1,1,1};
+				for(int i=0;i<10;i++)convolutional_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,kernel);
 			}
 			break;
 		case MENU_HOR:
