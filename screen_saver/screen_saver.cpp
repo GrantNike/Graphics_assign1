@@ -55,11 +55,6 @@ void square() {
     glFlush();
 }
 
-/*void sleep(int ms) {
-	clock_t target = clock() + ms;
-	while (clock() < target) { }
-}*/
-
 void start_square(){
     global.p1.x = random()%(799-global.square_width);
     global.p1.y = random()%(799-global.square_height);
@@ -77,7 +72,8 @@ void start_square(){
     square();
 }
 
-void animate(){
+void animate(int value){
+    glutTimerFunc(global.busy_sleep, animate, 0);
     int offset = 5;
     if(global.p1.x + global.v.x >= offset && global.p2.x + global.v.x <= 799){
         global.p1.x += global.v.x;
@@ -171,8 +167,9 @@ main(int argc, char **argv){
     glutFullScreen();
 
     start_square();
-    glutDisplayFunc(animate);
-    glutIdleFunc(animate);
+    //glutDisplayFunc(animate);
+    glutTimerFunc(global.busy_sleep, animate, 0);
+    //glutIdleFunc(animate);
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glMatrixMode(GL_PROJECTION);
     gluOrtho2D(0.0, 799.0, 0.0, 799.0); 
