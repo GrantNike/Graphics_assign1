@@ -15,7 +15,7 @@ Screen Saver Application
 //Used as parameter to random seed
 #include <ctime> 
 
-enum{MENU_QUIT};
+enum{MENU_SLOW,MENU_RESET,MENU_QUIT};
 
 typedef struct {
 	GLuint x,y;
@@ -29,9 +29,10 @@ typedef struct {
 typedef struct {
 	point p1;
     point p2;
-    int square_width = 100;
-    int square_height = 100;
+    GLuint square_width = 100;
+    GLuint square_height = 100;
     velocity v;
+    int busy_sleep = 10000;
 } glob;
 glob global;
 
@@ -47,6 +48,7 @@ void square() {
         glColor3f(1.0, 1.0, 1.0);
 	glVertex2i(global.p2.x, global.p1.y);
     glEnd();
+    glutSwapBuffers();
     glFlush();
 }
 
@@ -60,39 +62,58 @@ void start_square(){
     global.p1.y = random()%(799-global.square_height);
     global.p2.x = global.p1.x+global.square_width;
     global.p2.y = global.p1.y+global.square_height;
-    global.v.x = (random()%(10))-5;
-    global.v.y = (random()%(10))-5;
+    int rand;
+    do{
+        rand = (random()%(10))-5;
+    }while(rand == 0);
+    global.v.x = rand;
+    do{
+        rand = (random()%(10))-5;
+    }while(rand == 0);
+    global.v.y = rand;
     square();
 }
 
 void animate(){
-    if(global.p1.x + global.v.x >= 0){
-        if(global.p2.x + global.v.x <= 799){
-            global.p1.x += global.v.x;
-            global.p2.x += global.v.x;
-        }
+    int offset = 5;
+    if(global.p1.x + global.v.x >= offset && global.p2.x + global.v.x <= 799){
+        global.p1.x += global.v.x;
+        global.p2.x += global.v.x;
     }
     else{
-        global.v.x = (random()%(10))-5;
+        int rand;
+        do{
+            rand = (random()%(10))-5;
+        }while(rand == 0);
+        global.v.x = rand;
     }
-    if(global.p1.y + global.v.y >= 0){
-        if(global.p2.y + global.v.y <= 799){
-            global.p1.y += global.v.y;
-            global.p2.y += global.v.y;
-        }
+    if(global.p1.y + global.v.y >= offset && global.p2.y + global.v.y <= 799){
+        global.p1.y += global.v.y;
+        global.p2.y += global.v.y;
     }
     else{
-        global.v.y = (random()%(10))-5;
+        int rand;
+        do{
+            rand = (random()%(10))-5;
+        }while(rand == 0);
+        global.v.y = rand;
     }
-    sleep(10000);
     square();
+    sleep(global.busy_sleep);
 }
 
 //Defines what each menu function does
 void menu_func(int value){
     switch(value){
+        case MENU_SLOW:
+            global.busy_sleep = global.busy_sleep < 160000? global.busy_sleep*2 : global.busy_sleep;
+            break;
         case MENU_QUIT:
             exit(0);
+            break;
+        case MENU_RESET:
+            global.busy_sleep = 10000;
+            start_square();
             break;
     }
 }
@@ -100,6 +121,8 @@ void menu_func(int value){
 //Creates menu for user input
 void create_menu(){
     int main_menu = glutCreateMenu(&menu_func);
+    glutAddMenuEntry("Reset", MENU_RESET);
+    glutAddMenuEntry("Slow Time", MENU_SLOW);
     glutAddMenuEntry("Quit", MENU_QUIT);
     glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
@@ -113,7 +136,11 @@ void keyboard(unsigned char key, int x, int y){
             exit(0);
             break;
         case 'r':
+            global.busy_sleep = 10000;
             start_square();
+            break;
+        case 's':
+            global.busy_sleep = global.busy_sleep < 160000? global.busy_sleep*2 : global.busy_sleep;
             break;
     }
 }
