@@ -39,8 +39,10 @@ typedef struct {
 } glob;
 glob global;
 
-enum {MENU_GREY, MENU_MONO, MENU_NTSC, MENU_SWAP, MENU_PURE_RED, MENU_PURE_GREEN, MENU_PURE_BLUE, MENU_QUANT, MENU_QUANT_RAND,
-MENU_INTENSE_RED, MENU_INTENSE_GREEN, MENU_MAX, MENU_MIN, MENU_INTENSE_BLUE, MENU_SAVE, MENU_RESET, MENU_QUIT, MENU_SIN, MENU_TAN};
+enum {MENU_GREY, MENU_MONO, MENU_NTSC, MENU_SWAP, MENU_PURE_RED, MENU_PURE_GREEN, MENU_PURE_BLUE, 
+MENU_QUANT, MENU_QUANT_RAND, MENU_BLUR, MENU_HOR, MENU_VER,
+MENU_INTENSE_RED, MENU_INTENSE_GREEN, MENU_MAX, MENU_MIN, 
+MENU_INTENSE_BLUE, MENU_SAVE, MENU_RESET, MENU_QUIT, MENU_SIN, MENU_TAN};
 
 //read image
 pixel *read_img(char *name, int *width, int *height) {
@@ -303,7 +305,6 @@ void max_min_intensity(pixel* work_buff, pixel* temp_buff, int x1, int y1, int m
 				green_arr[8] = work_buff[i*myIm_Width + (j+1)].g;
 				blue_arr[8] = work_buff[i*myIm_Width + (j+1)].b;
 			}
-
 			//Set value to max of 9 values
 			if(max){
 				temp_buff[i*myIm_Width + j].r = *std::max_element(red_arr,red_arr+9);
@@ -325,8 +326,7 @@ void max_min_intensity(pixel* work_buff, pixel* temp_buff, int x1, int y1, int m
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
-void convolutional_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height, bool max, int* kernel){
-	int i,j;
+void convolutional_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height, int* kernel){
 	int red_arr[9];
 	int green_arr[9];
 	int blue_arr[9];
@@ -336,12 +336,12 @@ void convolutional_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, in
 		blue_arr[k] = 0;
 	}
 	//Go through each pixel in image...
-	for (i = y1; i < myIm_Height; i++) {
-		for (j = x1; j < myIm_Width; j++) {
+	for (int i = y1; i < myIm_Height; i++) {
+		for (int j = x1; j < myIm_Width; j++) {
 			//Original Element
-			red_arr[0] = work_buff[i*myIm_Width + j].r;
-			green_arr[0] = work_buff[i*myIm_Width + j].g;
-			blue_arr[0] = work_buff[i*myIm_Width + j].b;
+			red_arr[4] = work_buff[i*myIm_Width + j].r;
+			green_arr[4] = work_buff[i*myIm_Width + j].g;
+			blue_arr[4] = work_buff[i*myIm_Width + j].b;
 			//Top Elements
 			if(i != myIm_Height){
 				//Top Middle
@@ -350,63 +350,74 @@ void convolutional_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, in
 				blue_arr[1] = work_buff[(i+1)*myIm_Width + j].b;
 				if(j != 0){
 					//Top Left
-					red_arr[2] = work_buff[(i+1)*myIm_Width + (j-1)].r;
-					green_arr[2] = work_buff[(i+1)*myIm_Width + (j-1)].g;
-					blue_arr[2] = work_buff[(i+1)*myIm_Width + (j-1)].b;
+					red_arr[0] = work_buff[(i+1)*myIm_Width + (j-1)].r;
+					green_arr[0] = work_buff[(i+1)*myIm_Width + (j-1)].g;
+					blue_arr[0] = work_buff[(i+1)*myIm_Width + (j-1)].b;
 				}
 				if(j != myIm_Width){
 					//Top Right
-					red_arr[3] = work_buff[(i+1)*myIm_Width + (j+1)].r;
-					green_arr[3] = work_buff[(i+1)*myIm_Width + (j+1)].g;
-					blue_arr[3] = work_buff[(i+1)*myIm_Width + (j+1)].b;
+					red_arr[2] = work_buff[(i+1)*myIm_Width + (j+1)].r;
+					green_arr[2] = work_buff[(i+1)*myIm_Width + (j+1)].g;
+					blue_arr[2] = work_buff[(i+1)*myIm_Width + (j+1)].b;
 				}
 			}
 			//Bottom Elements
 			if(i != 0){
 				//Bottom Middle
-				red_arr[4] = work_buff[(i-1)*myIm_Width + j].r;
-				green_arr[4] = work_buff[(i-1)*myIm_Width + j].g;
-				blue_arr[4] = work_buff[(i-1)*myIm_Width + j].b;
+				red_arr[7] = work_buff[(i-1)*myIm_Width + j].r;
+				green_arr[7] = work_buff[(i-1)*myIm_Width + j].g;
+				blue_arr[7] = work_buff[(i-1)*myIm_Width + j].b;
 				if(j != 0){
 					//Bottom Left
-					red_arr[5] = work_buff[(i-1)*myIm_Width + (j-1)].r;
-					green_arr[5] = work_buff[(i-1)*myIm_Width + (j-1)].g;
-					blue_arr[5] = work_buff[(i-1)*myIm_Width + (j-1)].b;
+					red_arr[6] = work_buff[(i-1)*myIm_Width + (j-1)].r;
+					green_arr[6] = work_buff[(i-1)*myIm_Width + (j-1)].g;
+					blue_arr[6] = work_buff[(i-1)*myIm_Width + (j-1)].b;
 				}
 				if(j != myIm_Width){
 					//Bottom Right
-					red_arr[6] = work_buff[(i-1)*myIm_Width + (j+1)].r;
-					green_arr[6] = work_buff[(i-1)*myIm_Width + (j+1)].g;
-					blue_arr[6] = work_buff[(i-1)*myIm_Width + (j+1)].b;
+					red_arr[8] = work_buff[(i-1)*myIm_Width + (j+1)].r;
+					green_arr[8] = work_buff[(i-1)*myIm_Width + (j+1)].g;
+					blue_arr[8] = work_buff[(i-1)*myIm_Width + (j+1)].b;
 				}
 			}
 			//Left Middle
 			if(j != 0){
-				red_arr[7] = work_buff[i*myIm_Width + (j-1)].r;
-				green_arr[7] = work_buff[i*myIm_Width + (j-1)].g;
-				blue_arr[7] = work_buff[i*myIm_Width + (j-1)].b;
+				red_arr[3] = work_buff[i*myIm_Width + (j-1)].r;
+				green_arr[3] = work_buff[i*myIm_Width + (j-1)].g;
+				blue_arr[3] = work_buff[i*myIm_Width + (j-1)].b;
 			}
 			//Right Middle
 			if(j != myIm_Width){
-				red_arr[8] = work_buff[i*myIm_Width + (j+1)].r;
-				green_arr[8] = work_buff[i*myIm_Width + (j+1)].g;
-				blue_arr[8] = work_buff[i*myIm_Width + (j+1)].b;
+				red_arr[5] = work_buff[i*myIm_Width + (j+1)].r;
+				green_arr[5] = work_buff[i*myIm_Width + (j+1)].g;
+				blue_arr[5] = work_buff[i*myIm_Width + (j+1)].b;
 			}
 
-			//Set value to max of 9 values
-			if(max){
-				temp_buff[i*myIm_Width + j].r = *std::max_element(red_arr,red_arr+9);
-				temp_buff[i*myIm_Width + j].g = *std::max_element(green_arr,green_arr+9);
-				temp_buff[i*myIm_Width + j].b = *std::max_element(blue_arr,blue_arr+9);
+			//Find sum of values multiplied by kernel matrix
+			int red_sum = 0;
+			int green_sum = 0;
+			int blue_sum = 0;
+			for(int k=0;k<9;k++){
+				red_sum += red_arr[k]*kernel[k];
+				green_sum += green_arr[k]*kernel[k];
+				blue_sum += blue_arr[k]*kernel[k];
 			}
-
-			//Or set value to min of 9 values
-			else{
-				temp_buff[i*myIm_Width + j].r = *std::min_element(red_arr,red_arr+9);
-				temp_buff[i*myIm_Width + j].g = *std::min_element(green_arr,green_arr+9);
-				temp_buff[i*myIm_Width + j].b = *std::min_element(blue_arr,blue_arr+9);
-			}
-			
+			//Take the average of the 9 values
+			red_sum = (int)(red_sum/9.0);
+			green_sum = (int)(green_sum/9.0);
+			blue_sum = (int)(blue_sum/9.0);
+			//Set new red value
+			if(red_sum < 0) temp_buff[i*myIm_Width + j].r = 0;
+			if(red_sum < 255)temp_buff[i*myIm_Width + j].r = 255;
+			else temp_buff[i*myIm_Width + j].r = red_sum;
+			//Set new green value
+			if(green_sum < 0) temp_buff[i*myIm_Width + j].g = 0;
+			if(green_sum < 255)temp_buff[i*myIm_Width + j].g = 255;
+			else temp_buff[i*myIm_Width + j].g = green_sum;
+			//Set new blue value
+			if(blue_sum < 0) temp_buff[i*myIm_Width + j].b = 0;
+			if(blue_sum < 255)temp_buff[i*myIm_Width + j].b = 255;
+			else temp_buff[i*myIm_Width + j].b = blue_sum;
 		}
 	}
 	//Write finalized changes to display buffer
@@ -673,8 +684,7 @@ void keyboard(unsigned char key, int x, int y)
 
 
 //Glut menu callback function
-void menuFunc(int value)
-{
+void menuFunc(int value){
 	switch (value) {
 		case MENU_QUIT:
 			exit(0);
@@ -722,6 +732,24 @@ void menuFunc(int value)
 		case MENU_MIN:
 			max_min_intensity(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,false);
 			break;
+		case MENU_BLUR:
+			{
+				int kernel[] = {1,1,1,1,1,1,1,1,1}; 
+				convolutional_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,kernel);
+			}
+			break;
+		case MENU_HOR:
+			{
+				int kernel[] = {1,2,1,0,0,0,-1,-2,-1}; 
+				convolutional_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,kernel);
+			}
+			break;
+		case MENU_VER:
+			{
+				int kernel[] = {1,0,-1,2,0,-2,1,0,-1}; 
+				convolutional_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,kernel);	
+			}
+			break;
 		case MENU_QUANT:
 			quantize_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2, false);
 			break;
@@ -746,6 +774,11 @@ void show_keys()
 //Glut menu set up
 void init_menu()
 {
+	int convolutional_filter = glutCreateMenu(&menuFunc);
+	glutAddMenuEntry("Blur Filter", MENU_BLUR);
+	glutAddMenuEntry("Sobel Horizontal Filter", MENU_HOR);
+	glutAddMenuEntry("Sobel Vertical Filter", MENU_VER);
+
 	int quantize_filter = glutCreateMenu(&menuFunc);
 	glutAddMenuEntry("Random Colour Palette", MENU_QUANT_RAND);
 	glutAddMenuEntry("Preset Colour Palette", MENU_QUANT);
@@ -767,6 +800,7 @@ void init_menu()
 	glutAddMenuEntry("Channel Swap Filter", MENU_SWAP);
 	glutAddMenuEntry("Max Intensity Filter", MENU_MAX);
 	glutAddMenuEntry("Min Intensity Filter", MENU_MIN);
+	glutAddSubMenu("Convolutional Filter", convolutional_filter);
 	glutAddMenuEntry("Sine Filter", MENU_SIN);
 	glutAddMenuEntry("Tangent Filter", MENU_TAN);
 	glutAddSubMenu("Quantize Filter", quantize_filter);
