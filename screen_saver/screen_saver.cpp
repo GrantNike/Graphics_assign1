@@ -21,11 +21,11 @@ Screen Saver Application
 enum{MENU_SLOW, MENU_FAST, MENU_RESET, MENU_QUIT};
 
 typedef struct {
-	GLuint x,y;
+	GLfloat x,y;
 } point;
 
 typedef struct {
-	GLuint x,y;
+	GLfloat x,y;
 } velocity;
 
 //the global structure
@@ -35,7 +35,7 @@ typedef struct {
     GLuint square_width = 100;
     GLuint square_height = 100;
     velocity v;
-    int busy_sleep = 10;
+    int busy_sleep = 1;
 } glob;
 glob global;
 
@@ -64,17 +64,17 @@ void start_square(){
     do{
         rand = (random()%(10))-5;
     }while(rand == 0);
-    global.v.x = rand;
+    global.v.x = rand*0.1;
     do{
         rand = (random()%(10))-5;
     }while(rand == 0);
-    global.v.y = rand;
+    global.v.y = rand*0.1;
     square();
 }
 
 void animate(int value){
     glutTimerFunc(global.busy_sleep, animate, 0);
-    int offset = 5;
+    int offset = 0;
     if(global.p1.x + global.v.x >= offset && global.p2.x + global.v.x <= 799){
         global.p1.x += global.v.x;
         global.p2.x += global.v.x;
@@ -84,7 +84,7 @@ void animate(int value){
         do{
             rand = (random()%(10))-5;
         }while(rand == 0);
-        global.v.x = rand;
+        global.v.x = rand*0.1;
     }
     if(global.p1.y + global.v.y >= offset && global.p2.y + global.v.y <= 799){
         global.p1.y += global.v.y;
@@ -95,10 +95,10 @@ void animate(int value){
         do{
             rand = (random()%(10))-5;
         }while(rand == 0);
-        global.v.y = rand;
+        global.v.y = rand*0.1;
     }
-    square();
-    std::this_thread::sleep_for(std::chrono::milliseconds(global.busy_sleep));
+    glutPostRedisplay();
+    //std::this_thread::sleep_for(std::chrono::milliseconds(global.busy_sleep));
 }
 
 //Defines what each menu function does
@@ -167,8 +167,7 @@ main(int argc, char **argv){
     glutFullScreen();
 
     start_square();
-    //glutDisplayFunc(animate);
-    glutTimerFunc(global.busy_sleep, animate, 0);
+    glutDisplayFunc(square);
     //glutIdleFunc(animate);
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glMatrixMode(GL_PROJECTION);
@@ -176,6 +175,7 @@ main(int argc, char **argv){
     glutKeyboardFunc(keyboard);
     create_menu();
     show_keys();
+    glutTimerFunc(global.busy_sleep, animate, 0);
 
     glutMainLoop();
     return(0);
