@@ -13,9 +13,12 @@ Screen Saver Application
 //For Random
 #include <cstdlib> 
 //Used as parameter to random seed
-#include <ctime> 
+#include <ctime>
+//For sleep 
+#include <chrono>
+#include <thread>
 
-enum{MENU_SLOW,MENU_RESET,MENU_QUIT};
+enum{MENU_SLOW, MENU_FAST, MENU_RESET, MENU_QUIT};
 
 typedef struct {
 	GLuint x,y;
@@ -32,7 +35,7 @@ typedef struct {
     GLuint square_width = 100;
     GLuint square_height = 100;
     velocity v;
-    int busy_sleep = 10000;
+    int busy_sleep = 10;
 } glob;
 glob global;
 
@@ -52,10 +55,10 @@ void square() {
     glFlush();
 }
 
-void sleep(int ms) {
+/*void sleep(int ms) {
 	clock_t target = clock() + ms;
 	while (clock() < target) { }
-}
+}*/
 
 void start_square(){
     global.p1.x = random()%(799-global.square_width);
@@ -99,20 +102,23 @@ void animate(){
         global.v.y = rand;
     }
     square();
-    sleep(global.busy_sleep);
+    std::this_thread::sleep_for(std::chrono::milliseconds(global.busy_sleep));
 }
 
 //Defines what each menu function does
 void menu_func(int value){
     switch(value){
         case MENU_SLOW:
-            global.busy_sleep = global.busy_sleep < 160000? global.busy_sleep*2 : global.busy_sleep;
+            global.busy_sleep = global.busy_sleep < 160? global.busy_sleep*2 : global.busy_sleep;
+            break;
+        case MENU_FAST:
+            global.busy_sleep = global.busy_sleep > 1 ? global.busy_sleep/2 : 1;
             break;
         case MENU_QUIT:
             exit(0);
             break;
         case MENU_RESET:
-            global.busy_sleep = 10000;
+            global.busy_sleep = 10;
             start_square();
             break;
     }
@@ -123,6 +129,7 @@ void create_menu(){
     int main_menu = glutCreateMenu(&menu_func);
     glutAddMenuEntry("Reset", MENU_RESET);
     glutAddMenuEntry("Slow Time", MENU_SLOW);
+    glutAddMenuEntry("Speed Up Time", MENU_FAST);
     glutAddMenuEntry("Quit", MENU_QUIT);
     glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
@@ -136,11 +143,17 @@ void keyboard(unsigned char key, int x, int y){
             exit(0);
             break;
         case 'r':
-            global.busy_sleep = 10000;
+        case 'R':
+            global.busy_sleep = 10;
             start_square();
             break;
         case 's':
-            global.busy_sleep = global.busy_sleep < 160000? global.busy_sleep*2 : global.busy_sleep;
+        case 'S':
+            global.busy_sleep = global.busy_sleep < 160? global.busy_sleep*2 : global.busy_sleep;
+            break;
+        case 'f':
+        case 'F':
+            global.busy_sleep = global.busy_sleep > 1 ? global.busy_sleep/2 : 1;
             break;
     }
 }
