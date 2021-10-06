@@ -9,6 +9,7 @@ Screen Saver Application
 #include <GL/glu.h>
 #include <GL/glut.h>
 #include <vector>
+#include <iostream>
 //For Random
 #include <cstdlib> 
 //Used as parameter to random seed
@@ -20,38 +21,71 @@ typedef struct {
 	GLuint x,y;
 } point;
 
+typedef struct {
+	GLuint x,y;
+} velocity;
+
 //the global structure
 typedef struct {
 	point p1;
     point p2;
+    int square_width = 100;
+    int square_height = 100;
+    velocity v;
 } glob;
 glob global;
 
 void square() {
     glClear(GL_COLOR_BUFFER_BIT);
     glBegin(GL_POLYGON);
-        //glColor3f(1.0, 0.0, 0.0);
+        glColor3f(1.0, 0.0, 0.0);
 	glVertex2i(global.p1.x, global.p1.y);
-        //glColor3f(0.0, 1.0, 0.0);
+        glColor3f(0.0, 1.0, 0.0);
 	glVertex2i(global.p1.x, global.p2.y);
-        //glColor3f(0.0, 0.0, 1.0);
+        glColor3f(0.0, 0.0, 1.0);
 	glVertex2i(global.p2.x, global.p2.y);
-        //glColor3f(1.0, 1.0, 1.0);
+        glColor3f(1.0, 1.0, 1.0);
 	glVertex2i(global.p2.x, global.p1.y);
     glEnd();
     glFlush();
 }
 
+void sleep(int ms) {
+	clock_t target = clock() + ms;
+	while (clock() < target) { }
+}
+
+void start_square(){
+    global.p1.x = random()%(799-global.square_width);
+    global.p1.y = random()%(799-global.square_height);
+    global.p2.x = global.p1.x+global.square_width;
+    global.p2.y = global.p1.y+global.square_height;
+    global.v.x = (random()%(10))-5;
+    global.v.y = (random()%(10))-5;
+    square();
+}
+
 void animate(){
-    int square_width = 100;
-    int square_height = 100;
-
-    global.p1.x = random()%(799-square_width);
-    global.p1.y = random()%(799-square_height);
-    global.p2.x = global.p1.x+square_width;
-    global.p2.y = global.p1.y+square_height;
-
-    glutPostRedisplay();
+    if(global.p1.x + global.v.x >= 0){
+        if(global.p2.x + global.v.x <= 799){
+            global.p1.x += global.v.x;
+            global.p2.x += global.v.x;
+        }
+    }
+    else{
+        global.v.x = (random()%(10))-5;
+    }
+    if(global.p1.y + global.v.y >= 0){
+        if(global.p2.y + global.v.y <= 799){
+            global.p1.y += global.v.y;
+            global.p2.y += global.v.y;
+        }
+    }
+    else{
+        global.v.y = (random()%(10))-5;
+    }
+    sleep(10000);
+    square();
 }
 
 //Defines what each menu function does
@@ -78,7 +112,14 @@ void keyboard(unsigned char key, int x, int y){
         case 'Q':
             exit(0);
             break;
+        case 'r':
+            start_square();
+            break;
     }
+}
+
+void show_keys(){
+	std::cout<<(random()%2)-1;
 }
 
 main(int argc, char **argv){
@@ -86,17 +127,19 @@ main(int argc, char **argv){
 	srand(time(NULL));
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-    glutCreateWindow("Glut Square");
+    glutCreateWindow("Screen Saver");
     glutFullScreen();
 
-    glutDisplayFunc(square);
-
+    start_square();
+    glutDisplayFunc(animate);
+    glutIdleFunc(animate);
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glMatrixMode(GL_PROJECTION);
     gluOrtho2D(0.0, 799.0, 0.0, 799.0); 
     glutKeyboardFunc(keyboard);
     create_menu();
+    show_keys();
+
     glutMainLoop();
-    animate();
     return(0);
 }
