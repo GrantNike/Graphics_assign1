@@ -49,7 +49,7 @@ typedef struct {
 } glob;
 glob global;
 
-void square() {
+void rectangle() {
     glClear(GL_COLOR_BUFFER_BIT);
     glBegin(GL_POLYGON);
         glColor3f(global.square_colours[0].r, global.square_colours[0].g, global.square_colours[0].b);
@@ -64,7 +64,7 @@ void square() {
     glutSwapBuffers();
 }
 
-void start_square(){
+void start_rect(){
     global.p1.x = random()%(int)(global.screen_width-global.square_width);
     global.p1.y = random()%(int)(global.screen_height-global.square_height);
     global.p2.x = global.p1.x+global.square_width;
@@ -78,7 +78,7 @@ void start_square(){
         rand = (random()%(global.twoTimes))-global.range;
     }while(rand < 2 && rand > -2);
     global.v.y = rand;
-    square();
+    rectangle();
 }
 
 void animate(int value){
@@ -122,7 +122,7 @@ void reset(){
     global.square_width = 384;
     global.square_height = 216;
     global.busy_sleep = 10;
-    start_square();
+    start_rect();
 }
 
 //Defines what each menu function does
@@ -138,43 +138,43 @@ void menu_func(int value){
             if(global.square_width < global.screen_width/2 && global.square_height < global.screen_height/2){
                 global.square_width = global.square_width*1.5;
                 global.square_height = global.square_height*1.5;
-                start_square();
+                start_rect();
             }
             break;
         case MENU_SMALLER:
             if(global.square_width > 30 && global.square_height > 30){
                 global.square_width = global.square_width*(1/1.5);
                 global.square_height = global.square_height*(1/1.5);
-                start_square();
+                start_rect();
             }
             break;
         case MENU_ENLARGE_WIDTH:
             if(global.square_width < global.screen_width/2) global.square_width = global.square_width*1.5;
-            start_square();
+            start_rect();
             break;
         case MENU_ENLARGE_HEIGHT:
             if(global.square_height < global.screen_height/2) global.square_height = global.square_height*1.5;
-            start_square();
+            start_rect();
             break;
         case MENU_SMALLER_WIDTH:
             if(global.square_width > 30) global.square_width = global.square_width*(1/1.5);
-            start_square();
+            start_rect();
             break;
         case MENU_SMALLER_HEIGHT:
             if(global.square_height > 30) global.square_height = global.square_height*(1/1.5);
-            start_square();
+            start_rect();
             break;
         case MENU_ROTATE:
             {
                 int temp = global.square_width;
                 global.square_width = global.square_height;
                 global.square_height = temp;
-                start_square();
+                start_rect();
             }
             break;
         case MENU_RAND:
             random_colour();
-            start_square();
+            start_rect();
             break;
         case MENU_QUIT:
             exit(0);
@@ -229,7 +229,7 @@ void keyboard(unsigned char key, int x, int y){
         case 'c':
         case 'C':
             random_colour();
-            start_square();
+            start_rect();
             break;
     }
 }
@@ -271,8 +271,8 @@ main(int argc, char **argv){
     glutCreateWindow("Screen Saver");
     //glutFullScreen();
 
-    start_square();
-    glutDisplayFunc(square);
+    start_rect();
+    glutDisplayFunc(rectangle);
     //glutIdleFunc(animate);
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glMatrixMode(GL_PROJECTION);
