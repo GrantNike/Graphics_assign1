@@ -18,7 +18,8 @@ Screen Saver Application
 #include <chrono>
 #include <thread>
 
-enum{MENU_SLOW, MENU_FAST, MENU_ENLARGE, MENU_SMALLER, MENU_ROTATE, MENU_RESET, MENU_QUIT};
+enum{MENU_SLOW, MENU_FAST, MENU_ENLARGE, MENU_SMALLER, MENU_ENLARGE_WIDTH, MENU_ENLARGE_HEIGHT, 
+MENU_SMALLER_WIDTH, MENU_SMALLER_HEIGHT, MENU_ROTATE, MENU_RAND, MENU_RESET, MENU_QUIT};
 
 typedef struct {
 	GLfloat x,y;
@@ -27,6 +28,10 @@ typedef struct {
 typedef struct {
 	GLfloat x,y;
 } velocity;
+
+typedef struct {
+	GLfloat r, g, b;
+} colour;
 
 //the global structure
 typedef struct {
@@ -40,19 +45,20 @@ typedef struct {
     float busy_sleep = 10;
     int twoTimes = 10;
     int range = 5;
+    colour square_colours[4];
 } glob;
 glob global;
 
 void square() {
     glClear(GL_COLOR_BUFFER_BIT);
     glBegin(GL_POLYGON);
-        glColor3f(1.0, 1.0, 0);
+        glColor3f(global.square_colours[0].r, global.square_colours[0].g, global.square_colours[0].b);
 	glVertex2i(global.p1.x, global.p1.y);
-        glColor3f(1.0, 0.0, 1.0);
+        glColor3f(global.square_colours[1].r, global.square_colours[1].g, global.square_colours[1].b);
 	glVertex2i(global.p1.x, global.p2.y);
-        glColor3f(0.0, 0.0, 1.0);
+        glColor3f(global.square_colours[2].r, global.square_colours[2].g, global.square_colours[2].b);
 	glVertex2i(global.p2.x, global.p2.y);
-        glColor3f(1.0, 1.0, 1.0);
+        glColor3f(global.square_colours[3].r, global.square_colours[3].g, global.square_colours[3].b);
 	glVertex2i(global.p2.x, global.p1.y);
     glEnd();
     glutSwapBuffers();
@@ -104,6 +110,21 @@ void animate(int value){
     //std::this_thread::sleep_for(std::chrono::milliseconds(global.busy_sleep));
 }
 
+void random_colour(){
+    for(int i=0;i<4;i++){
+        global.square_colours[i].r = (rand()%1000)*0.001;
+        global.square_colours[i].g = (rand()%1000)*0.001;
+        global.square_colours[i].b = (rand()%1000)*0.001;
+    }
+}
+
+void reset(){
+    global.square_width = 384;
+    global.square_height = 216;
+    global.busy_sleep = 10;
+    start_square();
+}
+
 //Defines what each menu function does
 void menu_func(int value){
     switch(value){
@@ -122,10 +143,26 @@ void menu_func(int value){
             break;
         case MENU_SMALLER:
             if(global.square_width > 30 && global.square_height > 30){
-                global.square_width = global.square_width*0.5;
-                global.square_height = global.square_height*0.5;
+                global.square_width = global.square_width*(1/1.5);
+                global.square_height = global.square_height*(1/1.5);
                 start_square();
             }
+            break;
+        case MENU_ENLARGE_WIDTH:
+            if(global.square_width < global.screen_width/2) global.square_width = global.square_width*1.5;
+            start_square();
+            break;
+        case MENU_ENLARGE_HEIGHT:
+            if(global.square_height < global.screen_height/2) global.square_height = global.square_height*1.5;
+            start_square();
+            break;
+        case MENU_SMALLER_WIDTH:
+            if(global.square_width > 30) global.square_width = global.square_width*(1/1.5);
+            start_square();
+            break;
+        case MENU_SMALLER_HEIGHT:
+            if(global.square_height > 30) global.square_height = global.square_height*(1/1.5);
+            start_square();
             break;
         case MENU_ROTATE:
             {
@@ -135,12 +172,15 @@ void menu_func(int value){
                 start_square();
             }
             break;
+        case MENU_RAND:
+            random_colour();
+            start_square();
+            break;
         case MENU_QUIT:
             exit(0);
             break;
         case MENU_RESET:
-            global.busy_sleep = 10;
-            start_square();
+            reset();
             break;
     }
 }
@@ -150,13 +190,18 @@ void create_menu(){
     int change_size = glutCreateMenu(&menu_func);
     glutAddMenuEntry("Enlarge Shape", MENU_ENLARGE);
     glutAddMenuEntry("Smaller Shape", MENU_SMALLER);
+    glutAddMenuEntry("Enlarge Width", MENU_ENLARGE_WIDTH);
+    glutAddMenuEntry("Enlarge Height", MENU_ENLARGE_HEIGHT);
+    glutAddMenuEntry("Smaller Width", MENU_SMALLER_WIDTH);
+    glutAddMenuEntry("Smaller Height", MENU_SMALLER_HEIGHT);
 
     int main_menu = glutCreateMenu(&menu_func);
     glutAddMenuEntry("Reset", MENU_RESET);
     glutAddMenuEntry("Slow Time", MENU_SLOW);
     glutAddMenuEntry("Speed Up Time", MENU_FAST);
-    glutAddSubMenu("Change Shape Size", change_size);
-    glutAddMenuEntry("Rotate Shape", MENU_ROTATE);
+    glutAddMenuEntry("Random Colour", MENU_RAND);
+    glutAddSubMenu("Change Size", change_size);
+    glutAddMenuEntry("Rotate", MENU_ROTATE);
     glutAddMenuEntry("Quit", MENU_QUIT);
     glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
@@ -171,8 +216,7 @@ void keyboard(unsigned char key, int x, int y){
             break;
         case 'r':
         case 'R':
-            global.busy_sleep = 10;
-            start_square();
+            reset();
             break;
         case 's':
         case 'S':
@@ -182,6 +226,11 @@ void keyboard(unsigned char key, int x, int y){
         case 'F':
             global.busy_sleep = global.busy_sleep > 1 ? global.busy_sleep/2 : 1;
             break;
+        case 'c':
+        case 'C':
+            random_colour();
+            start_square();
+            break;
     }
 }
 
@@ -189,10 +238,30 @@ void show_keys(){
 	printf("r = Reset\n");
     printf("s = Slow Time\n");
     printf("f = Speed Up Time\n");
+    printf("c = Random Colour\n");
     printf("q = Quit\n");
 }
 
+void init_colour(){
+    global.square_colours[0].r = 1.0;
+    global.square_colours[0].g = 0.0;
+    global.square_colours[0].b = 0.0;
+
+    global.square_colours[1].r = 0.0;
+    global.square_colours[1].g = 1.0;
+    global.square_colours[1].b = 0.0;
+
+    global.square_colours[2].r = 0.0;
+    global.square_colours[2].g = 0.0;
+    global.square_colours[2].b = 1.0;
+
+    global.square_colours[3].r = 1.0;
+    global.square_colours[3].g = 1.0;
+    global.square_colours[3].b = 1.0;
+}
+
 main(int argc, char **argv){
+    random_colour();
     show_keys();
     //Create random seed for random number generation
 	srand(time(NULL));
