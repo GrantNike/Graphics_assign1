@@ -18,7 +18,7 @@ Screen Saver Application
 #include <chrono>
 #include <thread>
 
-enum{MENU_SLOW, MENU_FAST, MENU_ROTATE, MENU_RESET, MENU_QUIT};
+enum{MENU_SLOW, MENU_FAST, MENU_ENLARGE, MENU_SMALLER, MENU_ROTATE, MENU_RESET, MENU_QUIT};
 
 typedef struct {
 	GLfloat x,y;
@@ -34,8 +34,8 @@ typedef struct {
     point p2;
     GLfloat screen_width = 1920.0;
     GLfloat screen_height = 1080.0;
-    GLuint square_width = 300;
-    GLuint square_height = 200;
+    GLfloat square_width = 384;
+    GLfloat square_height = 216;
     velocity v;
     float busy_sleep = 10;
     int twoTimes = 10;
@@ -46,9 +46,9 @@ glob global;
 void square() {
     glClear(GL_COLOR_BUFFER_BIT);
     glBegin(GL_POLYGON);
-        glColor3f(0, 1.0, 0);
+        glColor3f(1.0, 1.0, 0);
 	glVertex2i(global.p1.x, global.p1.y);
-        glColor3f(1.0, 0.0, 0.0);
+        glColor3f(1.0, 0.0, 1.0);
 	glVertex2i(global.p1.x, global.p2.y);
         glColor3f(0.0, 0.0, 1.0);
 	glVertex2i(global.p2.x, global.p2.y);
@@ -59,8 +59,8 @@ void square() {
 }
 
 void start_square(){
-    global.p1.x = random()%((int)global.screen_width-global.square_width);
-    global.p1.y = random()%((int)global.screen_height-global.square_height);
+    global.p1.x = random()%(int)(global.screen_width-global.square_width);
+    global.p1.y = random()%(int)(global.screen_height-global.square_height);
     global.p2.x = global.p1.x+global.square_width;
     global.p2.y = global.p1.y+global.square_height;
     int rand;
@@ -113,6 +113,20 @@ void menu_func(int value){
         case MENU_FAST:
             global.busy_sleep = global.busy_sleep > 1 ? global.busy_sleep/2 : 1;
             break;
+        case MENU_ENLARGE:
+            if(global.square_width < global.screen_width/2 && global.square_height < global.screen_height/2){
+                global.square_width = global.square_width*1.5;
+                global.square_height = global.square_height*1.5;
+                start_square();
+            }
+            break;
+        case MENU_SMALLER:
+            if(global.square_width > 30 && global.square_height > 30){
+                global.square_width = global.square_width*0.5;
+                global.square_height = global.square_height*0.5;
+                start_square();
+            }
+            break;
         case MENU_ROTATE:
             {
                 int temp = global.square_width;
@@ -133,10 +147,15 @@ void menu_func(int value){
 
 //Creates menu for user input
 void create_menu(){
+    int change_size = glutCreateMenu(&menu_func);
+    glutAddMenuEntry("Enlarge Shape", MENU_ENLARGE);
+    glutAddMenuEntry("Smaller Shape", MENU_SMALLER);
+
     int main_menu = glutCreateMenu(&menu_func);
     glutAddMenuEntry("Reset", MENU_RESET);
     glutAddMenuEntry("Slow Time", MENU_SLOW);
     glutAddMenuEntry("Speed Up Time", MENU_FAST);
+    glutAddSubMenu("Change Shape Size", change_size);
     glutAddMenuEntry("Rotate Shape", MENU_ROTATE);
     glutAddMenuEntry("Quit", MENU_QUIT);
     glutAttachMenu(GLUT_RIGHT_BUTTON);
