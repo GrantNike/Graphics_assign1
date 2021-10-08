@@ -20,6 +20,7 @@ Image Processing Application
 #include <malloc.h>
 #include <GL/glut.h>
 #include <FreeImage.h>
+#include <vector>
 //For openMP parallel library
 #include <omp.h>
 int NUM_THREADS = omp_get_max_threads();
@@ -43,7 +44,7 @@ glob global;
 enum {MENU_GREY, MENU_MONO, MENU_NTSC, MENU_SWAP, MENU_PURE_RED, MENU_PURE_GREEN, MENU_PURE_BLUE, 
 MENU_QUANT, MENU_QUANT_RAND, MENU_BLUR, MENU_HOR, MENU_VER,
 MENU_INTENSE_RED, MENU_INTENSE_GREEN, MENU_MAX, MENU_MIN, MENU_AREA, 
-MENU_INTENSE_BLUE, MENU_SAVE, MENU_RESET, MENU_RESET_AREA, MENU_QUIT, MENU_SIN, MENU_TAN};
+MENU_INTENSE_BLUE, MENU_SAVE, MENU_RESET, MENU_RESET_AREA, MENU_FULLSCREEN, MENU_WINDOW, MENU_QUIT, MENU_SIN, MENU_TAN};
 
 //read image
 pixel *read_img(char *name, int *width, int *height) {
@@ -541,11 +542,11 @@ void quantize_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myI
 			pixel closest_colour = colour_palette.front();
 			float min_dist = sqrt((temp_buff[i*myIm_Width + j].r - closest_colour.r)^2 + (temp_buff[i*myIm_Width + j].g - closest_colour.g)^2 + (temp_buff[i*myIm_Width + j].b - closest_colour.b)^2);
 			# pragma omp parallel for num_threads(NUM_THREADS)
-			for(pixel p:colour_palette){
-				float euclid_dist = sqrt((temp_buff[i*myIm_Width + j].r - p.r)^2 + (temp_buff[i*myIm_Width + j].g - p.g)^2 + (temp_buff[i*myIm_Width + j].b - p.b)^2);
+			for(int k = 0;k<colour_palette.size();k++){
+				float euclid_dist = sqrt((temp_buff[i*myIm_Width + j].r - colour_palette[k].r)^2 + (temp_buff[i*myIm_Width + j].g - colour_palette[k].g)^2 + (temp_buff[i*myIm_Width + j].b - colour_palette[k].b)^2);
 				if(euclid_dist < min_dist){
 					min_dist = euclid_dist;
-					closest_colour = p;
+					closest_colour = colour_palette[k];
 				}
 			}
 			//Assign closest colour to current pixel
@@ -610,22 +611,23 @@ void reset_image(){
 //Sets x1,y1 coordinates to left mouse click coordinates
 void set_coordinates(int button, int state, int x, int y){
 	int count = 0;
+	int offset = 60;
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
 		if(global.count == 0){
 			global.x1 = x;
-			global.y1 = global.h-y-60;
+			global.y1 = global.h-y-offset;
 			global.count++;
-			//std::cout<<"X2: "<<global.x2<<std::endl;
-			//std::cout<<"Y2: "<<global.y2<<std::endl;
+			std::cout<<"First Point Selected: "<<" ";
+			std::cout<<"X1="<<global.x1<<" ";
+			std::cout<<"Y1="<<global.y1<<std::endl;
 		}
 		else if(global.count == 1){
 			global.x2 = x;
-			global.y2 = global.h-y-60;
+			global.y2 = global.h-y-offset;
 			global.count++;
-			std::cout<<"X1: "<<global.x1<<std::endl;
-			std::cout<<"Y1: "<<global.y1<<std::endl;
-			std::cout<<"X2: "<<global.x2<<std::endl;
-			std::cout<<"Y2: "<<global.y2<<std::endl;
+			std::cout<<"Second Point Selected: "<<" ";
+			std::cout<<"X2="<<global.x2<<" ";
+			std::cout<<"Y2="<<global.y2<<std::endl<<std::endl;
 		}
 		if (global.x1 > global.x2){
 			int temp_x = global.x1;
@@ -639,27 +641,9 @@ void set_coordinates(int button, int state, int x, int y){
 		}
 	}
 }
-//Helper function for area select
-//Sets x2,y2 coordinates to left mouse click coordinates
-void set_coordinates2(int button, int state, int x, int y){
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
-		global.x2 = x;
-		global.y2 = global.h-y;
-	}
-}
 //Selects area of screen to be filtered
 void area_select(){
 	glutMouseFunc(set_coordinates);
-	/*if (global.x1 > global.x2){
-		int temp_x = global.x1;
-		global.x1 = global.x2;
-		global.x2 = temp_x;
-	}
-	if (global.y1 > global.y2){
-		int temp_y = global.y1;
-		global.y1 = global.y2;
-		global.y2 = temp_y;
-	}*/
 }
 
 //Resets rectangular filter area to being the entire image
@@ -687,8 +671,8 @@ void keyboard(unsigned char key, int x, int y)
 		break;
 	case 's':
 	case 'S':
-		printf("SAVING IMAGE: backup.tif\n");
-		write_img("backup.tif", global.work_buff, global.w, global.h);
+		printf("SAVING IMAGE: savedImage.tif\n");
+		write_img("savedImage.tif", global.work_buff, global.w, global.h);
 		break;
 	case 'g':
 	case 'G':
@@ -735,6 +719,12 @@ void menuFunc(int value){
 			break;
 		case MENU_RESET:
 			reset_image();
+			break;
+		case MENU_FULLSCREEN:
+			glutFullScreen();
+			break;
+		case MENU_WINDOW:
+			glutReshapeWindow(global.w, global.h);
 			break;
 		case MENU_AREA:
 			reset_filter_area();
@@ -815,7 +805,14 @@ void menuFunc(int value){
 
 void show_keys()
 {
-	printf("Q:quit\nR:reset\nF:filter\nT:triangle\nS:save\n");
+	std::cout<<"G:Greyscale filter"<<std::endl;
+	std::cout<<"M:Monochrome filter"<<std::endl;
+	std::cout<<"N:NTSC filter"<<std::endl;
+	std::cout<<"C:Channel Swap filter"<<std::endl;
+	std::cout<<"A:Select Filter Area"<<std::endl;
+	std::cout<<"S:save"<<std::endl;
+	std::cout<< "R:reset"<<std::endl;
+	std::cout<<"Q:quit"<<std::endl;
 }
 
 //Glut menu set up
@@ -862,6 +859,8 @@ void init_menu()
 	glutAddSubMenu("Area Select", area_select);
 	glutAddSubMenu("Filter", filter_menu);
 	glutAddMenuEntry("Reset", MENU_RESET);
+	glutAddMenuEntry("Fullscreen", MENU_FULLSCREEN);
+	glutAddMenuEntry("Windowed View", MENU_WINDOW);
 	glutAddMenuEntry("Save", MENU_SAVE);
 	glutAddMenuEntry("Quit", MENU_QUIT);
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
@@ -878,7 +877,7 @@ int main(int argc, char** argv){
 	reset_filter_area();
 	if (global.save_buff == NULL)
 	{
-		printf("Error loading image file %s\n", FILENAME);
+		std::cout<<"Error loading image file %s\n"<<FILENAME;
 		return 1;
 	}
 

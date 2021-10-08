@@ -16,7 +16,7 @@ Screen Saver Application
 #include <ctime>
 
 enum{MENU_SLOW, MENU_FAST, MENU_ENLARGE, MENU_SMALLER, MENU_ENLARGE_WIDTH, MENU_ENLARGE_HEIGHT, 
-MENU_SMALLER_WIDTH, MENU_SMALLER_HEIGHT, MENU_ROTATE, MENU_RAND, MENU_RESET, MENU_QUIT};
+MENU_SMALLER_WIDTH, MENU_SMALLER_HEIGHT, MENU_ROTATE, MENU_RAND, MENU_FULLSCREEN, MENU_WINDOW, MENU_RESET, MENU_QUIT};
 
 //A point on the screen, used to represent the top right and bottom left corners of the rectangle
 typedef struct {
@@ -188,6 +188,12 @@ void menu_func(int value){
             random_colour();
             start_rect();
             break;
+        case MENU_FULLSCREEN:
+            glutFullScreen();
+            break;
+        case MENU_WINDOW:
+            glutReshapeWindow(global.screen_width/2,global.screen_height/2);
+            break;
         //Close the program
         case MENU_QUIT:
             exit(0);
@@ -216,6 +222,8 @@ void create_menu(){
     glutAddMenuEntry("Random Colour", MENU_RAND);
     glutAddSubMenu("Change Size", change_size);
     glutAddMenuEntry("Rotate", MENU_ROTATE);
+    glutAddMenuEntry("Fullscreen", MENU_FULLSCREEN);
+    glutAddMenuEntry("Windowed View", MENU_WINDOW);
     glutAddMenuEntry("Quit", MENU_QUIT);
     glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
@@ -254,11 +262,11 @@ void keyboard(unsigned char key, int x, int y){
 }
 //Tell user which keys have functions
 void show_keys(){
-	printf("r = Reset\n");
+	/*printf("r = Reset\n");
     printf("s = Slow Time\n");
     printf("f = Speed Up Time\n");
     printf("c = Random Colour\n");
-    printf("q = Quit\n");
+    printf("q = Quit\n");*/
 }
 //Set a default colour
 void init_colour(){
@@ -288,7 +296,7 @@ main(int argc, char **argv){
     glutInitWindowSize(1920/2,1080/2);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutCreateWindow("Screen Saver");
-    //glutFullScreen();
+    glutFullScreen();
     
     //Initialize the rectangle
     start_rect();
