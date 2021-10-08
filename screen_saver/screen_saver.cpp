@@ -14,21 +14,19 @@ Screen Saver Application
 #include <cstdlib> 
 //Used as parameter to random seed
 #include <ctime>
-//For sleep 
-#include <chrono>
-#include <thread>
 
 enum{MENU_SLOW, MENU_FAST, MENU_ENLARGE, MENU_SMALLER, MENU_ENLARGE_WIDTH, MENU_ENLARGE_HEIGHT, 
 MENU_SMALLER_WIDTH, MENU_SMALLER_HEIGHT, MENU_ROTATE, MENU_RAND, MENU_RESET, MENU_QUIT};
 
+//A point on the screen, used to represent the top right and bottom left corners of the rectangle
 typedef struct {
 	GLfloat x,y;
 } point;
-
+//The velocity vector of the rectangle that determines where it moves and by how much
 typedef struct {
 	GLfloat x,y;
 } velocity;
-
+//The colours of the rectangle
 typedef struct {
 	GLfloat r, g, b;
 } colour;
@@ -45,25 +43,27 @@ typedef struct {
     float busy_sleep = 10;
     int twoTimes = 10;
     int range = 5;
-    colour square_colours[4];
+    colour rect_colours[4];
 } glob;
 glob global;
 
+//Draws the rectangle using the global corner points and global colours 
 void rectangle() {
     glClear(GL_COLOR_BUFFER_BIT);
     glBegin(GL_POLYGON);
-        glColor3f(global.square_colours[0].r, global.square_colours[0].g, global.square_colours[0].b);
+        glColor3f(global.rect_colours[0].r, global.rect_colours[0].g, global.rect_colours[0].b);
 	glVertex2i(global.p1.x, global.p1.y);
-        glColor3f(global.square_colours[1].r, global.square_colours[1].g, global.square_colours[1].b);
+        glColor3f(global.rect_colours[1].r, global.rect_colours[1].g, global.rect_colours[1].b);
 	glVertex2i(global.p1.x, global.p2.y);
-        glColor3f(global.square_colours[2].r, global.square_colours[2].g, global.square_colours[2].b);
+        glColor3f(global.rect_colours[2].r, global.rect_colours[2].g, global.rect_colours[2].b);
 	glVertex2i(global.p2.x, global.p2.y);
-        glColor3f(global.square_colours[3].r, global.square_colours[3].g, global.square_colours[3].b);
+        glColor3f(global.rect_colours[3].r, global.rect_colours[3].g, global.rect_colours[3].b);
 	glVertex2i(global.p2.x, global.p1.y);
     glEnd();
     glutSwapBuffers();
 }
 
+//Choose a random starting position and velocity for the rectangle
 void start_rect(){
     global.p1.x = random()%(int)(global.screen_width-global.square_width);
     global.p1.y = random()%(int)(global.screen_height-global.square_height);
@@ -81,6 +81,7 @@ void start_rect(){
     rectangle();
 }
 
+//Change the position of the rectangle based on its velocity, choose a new velocity once it encounters a wall
 void animate(int value){
     int offset = 0;
     if(global.p1.x + global.v.x >= offset && global.p2.x + global.v.x <= global.screen_width){
@@ -110,11 +111,12 @@ void animate(int value){
     //std::this_thread::sleep_for(std::chrono::milliseconds(global.busy_sleep));
 }
 
+//Choose a set of random colours for the rectangle
 void random_colour(){
     for(int i=0;i<4;i++){
-        global.square_colours[i].r = (rand()%1000)*0.001;
-        global.square_colours[i].g = (rand()%1000)*0.001;
-        global.square_colours[i].b = (rand()%1000)*0.001;
+        global.rect_colours[i].r = (rand()%1000)*0.001;
+        global.rect_colours[i].g = (rand()%1000)*0.001;
+        global.rect_colours[i].b = (rand()%1000)*0.001;
     }
 }
 
@@ -128,12 +130,15 @@ void reset(){
 //Defines what each menu function does
 void menu_func(int value){
     switch(value){
+        //Slow down the animation
         case MENU_SLOW:
             global.busy_sleep = global.busy_sleep < 160? global.busy_sleep*2 : global.busy_sleep;
             break;
+        //Speed up the animation
         case MENU_FAST:
             global.busy_sleep = global.busy_sleep > 1 ? global.busy_sleep/2 : 1;
             break;
+        //Enlarge the rectangle
         case MENU_ENLARGE:
             if(global.square_width < global.screen_width/2 && global.square_height < global.screen_height/2){
                 global.square_width = global.square_width*1.5;
@@ -141,6 +146,7 @@ void menu_func(int value){
                 start_rect();
             }
             break;
+        //Make the rectangle smaller
         case MENU_SMALLER:
             if(global.square_width > 30 && global.square_height > 30){
                 global.square_width = global.square_width*(1/1.5);
@@ -148,22 +154,27 @@ void menu_func(int value){
                 start_rect();
             }
             break;
+        //Increase the width of the rectangle
         case MENU_ENLARGE_WIDTH:
             if(global.square_width < global.screen_width/2) global.square_width = global.square_width*1.5;
             start_rect();
             break;
+        //Increase the height of the rectangle
         case MENU_ENLARGE_HEIGHT:
             if(global.square_height < global.screen_height/2) global.square_height = global.square_height*1.5;
             start_rect();
             break;
+        //Decrease the width of the rectangle
         case MENU_SMALLER_WIDTH:
             if(global.square_width > 30) global.square_width = global.square_width*(1/1.5);
             start_rect();
             break;
+        //Decrease the height of the rectangle
         case MENU_SMALLER_HEIGHT:
             if(global.square_height > 30) global.square_height = global.square_height*(1/1.5);
             start_rect();
             break;
+        //Rotate the rectangle 90 degrees
         case MENU_ROTATE:
             {
                 int temp = global.square_width;
@@ -172,13 +183,16 @@ void menu_func(int value){
                 start_rect();
             }
             break;
+        //Set the rectangle to a random colour gradient
         case MENU_RAND:
             random_colour();
             start_rect();
             break;
+        //Close the program
         case MENU_QUIT:
             exit(0);
             break;
+        //Reset the animation parameters
         case MENU_RESET:
             reset();
             break;
@@ -209,23 +223,28 @@ void create_menu(){
 //Glut keyboard function to handle keyboard inputs
 void keyboard(unsigned char key, int x, int y){
     switch (key){
+        //Quit
         case 0x1B:
         case 'q':
         case 'Q':
             exit(0);
             break;
+        //Reset
         case 'r':
         case 'R':
             reset();
             break;
+        //Slow Animation
         case 's':
         case 'S':
             global.busy_sleep = global.busy_sleep < 160? global.busy_sleep*2 : global.busy_sleep;
             break;
+        //Faster Animation
         case 'f':
         case 'F':
             global.busy_sleep = global.busy_sleep > 1 ? global.busy_sleep/2 : 1;
             break;
+        //Random Colour
         case 'c':
         case 'C':
             random_colour();
@@ -233,7 +252,7 @@ void keyboard(unsigned char key, int x, int y){
             break;
     }
 }
-
+//Tell user which keys have functions
 void show_keys(){
 	printf("r = Reset\n");
     printf("s = Slow Time\n");
@@ -241,23 +260,23 @@ void show_keys(){
     printf("c = Random Colour\n");
     printf("q = Quit\n");
 }
-
+//Set a default colour
 void init_colour(){
-    global.square_colours[0].r = 1.0;
-    global.square_colours[0].g = 0.0;
-    global.square_colours[0].b = 0.0;
+    global.rect_colours[0].r = 1.0;
+    global.rect_colours[0].g = 0.0;
+    global.rect_colours[0].b = 0.0;
 
-    global.square_colours[1].r = 0.0;
-    global.square_colours[1].g = 1.0;
-    global.square_colours[1].b = 0.0;
+    global.rect_colours[1].r = 0.0;
+    global.rect_colours[1].g = 1.0;
+    global.rect_colours[1].b = 0.0;
 
-    global.square_colours[2].r = 0.0;
-    global.square_colours[2].g = 0.0;
-    global.square_colours[2].b = 1.0;
+    global.rect_colours[2].r = 0.0;
+    global.rect_colours[2].g = 0.0;
+    global.rect_colours[2].b = 1.0;
 
-    global.square_colours[3].r = 1.0;
-    global.square_colours[3].g = 1.0;
-    global.square_colours[3].b = 1.0;
+    global.rect_colours[3].r = 1.0;
+    global.rect_colours[3].g = 1.0;
+    global.rect_colours[3].b = 1.0;
 }
 
 main(int argc, char **argv){
@@ -270,7 +289,8 @@ main(int argc, char **argv){
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutCreateWindow("Screen Saver");
     //glutFullScreen();
-
+    
+    //Initialize the rectangle
     start_rect();
     glutDisplayFunc(rectangle);
     //glutIdleFunc(animate);
@@ -279,6 +299,7 @@ main(int argc, char **argv){
     gluOrtho2D(0.0, global.screen_width, 0.0, global.screen_height); 
     glutKeyboardFunc(keyboard);
     create_menu();
+    //Runs the animate function every set number of ms
     glutTimerFunc(global.busy_sleep, animate, 0);
 
     glutMainLoop();

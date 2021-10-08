@@ -36,13 +36,14 @@ typedef struct {
 	int w, h;
 	int x1,y1;
 	int x2,y2;
+	int count = 0;
 } glob;
 glob global;
 
 enum {MENU_GREY, MENU_MONO, MENU_NTSC, MENU_SWAP, MENU_PURE_RED, MENU_PURE_GREEN, MENU_PURE_BLUE, 
 MENU_QUANT, MENU_QUANT_RAND, MENU_BLUR, MENU_HOR, MENU_VER,
-MENU_INTENSE_RED, MENU_INTENSE_GREEN, MENU_MAX, MENU_MIN, 
-MENU_INTENSE_BLUE, MENU_SAVE, MENU_RESET, MENU_QUIT, MENU_SIN, MENU_TAN};
+MENU_INTENSE_RED, MENU_INTENSE_GREEN, MENU_MAX, MENU_MIN, MENU_AREA, 
+MENU_INTENSE_BLUE, MENU_SAVE, MENU_RESET, MENU_RESET_AREA, MENU_QUIT, MENU_SIN, MENU_TAN};
 
 //read image
 pixel *read_img(char *name, int *width, int *height) {
@@ -95,7 +96,7 @@ void write_img(char *name, pixel *data, int width, int height) {
 		perror("FreeImage_Save");
 	}
 	FreeImage_Unload(image);
-}//write_img
+}
 
 
 /*draw the image - it is already in the format openGL requires for glDrawPixels*/
@@ -103,14 +104,11 @@ void display_image(void)
 {
 	glDrawPixels(global.w, global.h, GL_RGB, GL_UNSIGNED_BYTE, (GLubyte*)global.work_buff);
 	glFlush();
-}//display_image()
+}
 
 //Creates a deep copy of a pixel struct array
 pixel* deep_copy(pixel* original){
-
-	//Note: watch for memory leaks!***********************************************************************************************************************************
-	
-	//allocate space for new pixel struct
+	//allocate space for new pixel array
 	pixel* copy = (pixel *)malloc((*(&global.h))*(*(&global.w))*sizeof(pixel *));
 	//read rgb values from original image and copy them to the copy of the image
 	for (int i = 0; i < global.h; i++) {
@@ -127,24 +125,26 @@ pixel* deep_copy(pixel* original){
 void greyscale_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 	int i, j;
 	//Go through each pixel in image, take the average of the rgb values of each, and set the rgb values to the average
-	for (i = y1; i < myIm_Height; i++) {
-		for (j = x1; j < myIm_Width; j++) {
-			int rgb_sum = work_buff[i*myIm_Width + j].r + work_buff[i*myIm_Width + j].g + work_buff[i*myIm_Width + j].b;
-			temp_buff[i*myIm_Width + j].r = rgb_sum/3;
-			temp_buff[i*myIm_Width + j].g = rgb_sum/3;
-			temp_buff[i*myIm_Width + j].b = rgb_sum/3;
+	for (i = y1; i < global.y2; i++) {
+		for (j = x1; j < global.x2; j++) {
+			int rgb_sum = work_buff[i*global.w + j].r + work_buff[i*global.w + j].g + work_buff[i*global.w + j].b;
+			temp_buff[i*global.w + j].r = rgb_sum/3;
+			temp_buff[i*global.w + j].g = rgb_sum/3;
+			temp_buff[i*global.w + j].b = rgb_sum/3;
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
 void monochrome_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 	int i, j;
 	//Go through each pixel in image...
-	for (i = y1; i < myIm_Height; i++) {
-		for (j = x1; j < myIm_Width; j++) {
+	for (i = y1; i < global.y2; i++) {
+		for (j = x1; j < global.x2; j++) {
 			int rgb_sum = work_buff[i*myIm_Width + j].r + work_buff[i*myIm_Width + j].g + work_buff[i*myIm_Width + j].b;
 			if(rgb_sum/3 > (0.5*255)){
 				temp_buff[i*myIm_Width + j].r = 255;
@@ -159,15 +159,17 @@ void monochrome_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int m
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
 void ntsc_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 int i, j;
 	//Go through each pixel in image...
-	for (i = y1; i < myIm_Height; i++) {
-		for (j = x1; j < myIm_Width; j++) {
+	for (i = y1; i < global.y2; i++) {
+		for (j = x1; j < global.x2; j++) {
 			int rgb_sum = (int)((0.299)*work_buff[i*myIm_Width + j].r) + (int)((0.587)*work_buff[i*myIm_Width + j].g) + (int)((0.114)*work_buff[i*myIm_Width + j].b);
 			
 			temp_buff[i*myIm_Width + j].r = rgb_sum;
@@ -176,15 +178,17 @@ int i, j;
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
 void swap_channel(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 int i, j;
 	//Go through each pixel in image...
-	for (i = y1; i < myIm_Height; i++) {
-		for (j = x1; j < myIm_Width; j++) {
+	for (i = y1; i < global.y2; i++) {
+		for (j = x1; j < global.x2; j++) {
 			int temp = temp_buff[i*myIm_Width + j].r;
 			temp_buff[i*myIm_Width + j].r = temp_buff[i*myIm_Width + j].g;
 			temp_buff[i*myIm_Width + j].g = temp_buff[i*myIm_Width + j].b;
@@ -192,49 +196,57 @@ int i, j;
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
 void pure_red_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 int i, j;
 	//Go through each pixel in image...
-	for (i = y1; i < myIm_Height; i++) {
-		for (j = x1; j < myIm_Width; j++) {
+	for (i = y1; i < global.y2; i++) {
+		for (j = x1; j < global.x2; j++) {
 			temp_buff[i*myIm_Width + j].g = 0;
 			temp_buff[i*myIm_Width + j].b = 0;
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
 void pure_green_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 int i, j;
 	//Go through each pixel in image...
-	for (i = y1; i < myIm_Height; i++) {
-		for (j = x1; j < myIm_Width; j++) {
+	for (i = y1; i < global.y2; i++) {
+		for (j = x1; j < global.x2; j++) {
 			temp_buff[i*myIm_Width + j].r = 0;
 			temp_buff[i*myIm_Width + j].b = 0;
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
 void pure_blue_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 	int i, j;
 	//Go through each pixel in image...
-	for (i = y1; i < myIm_Height; i++) {
-		for (j = x1; j < myIm_Width; j++) {
+	for (i = y1; i < global.y2; i++) {
+		for (j = x1; j < global.x2; j++) {
 			temp_buff[i*myIm_Width + j].r = 0;
 			temp_buff[i*myIm_Width + j].g = 0;
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
@@ -249,8 +261,8 @@ void max_min_intensity(pixel* work_buff, pixel* temp_buff, int x1, int y1, int m
 		blue_arr[k] = 0;
 	}
 	//Go through each pixel in image...
-	for (i = y1; i < myIm_Height; i++) {
-		for (j = x1; j < myIm_Width; j++) {
+	for (i = y1; i < global.y2; i++) {
+		for (j = x1; j < global.x2; j++) {
 			//Original Element
 			red_arr[0] = work_buff[i*myIm_Width + j].r;
 			green_arr[0] = work_buff[i*myIm_Width + j].g;
@@ -322,7 +334,9 @@ void max_min_intensity(pixel* work_buff, pixel* temp_buff, int x1, int y1, int m
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);//Free unused memory
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
@@ -337,8 +351,8 @@ void convolutional_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, in
 	}
 	//Go through each pixel in image...
 	# pragma omp parallel for num_threads(NUM_THREADS) collapse(2) private(red_arr) private(green_arr) private(blue_arr)
-	for (int i = y1; i < myIm_Height; i++) {
-		for (int j = x1; j < myIm_Width; j++) {
+	for (int i = y1; i < global.y2; i++) {
+		for (int j = x1; j < global.x2; j++) {
 			//Original Element
 			red_arr[4] = work_buff[i*myIm_Width + j].r;
 			green_arr[4] = work_buff[i*myIm_Width + j].g;
@@ -422,15 +436,17 @@ void convolutional_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, in
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);//Free unused memory
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
 void red_intensify(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 	int i,j;
 	//Go through each pixel in image...
-	for (i = y1; i < myIm_Height; i++) {
-		for (j = x1; j < myIm_Width; j++) {
+	for (i = y1; i < global.y2; i++) {
+		for (j = x1; j < global.x2; j++) {
 			temp_buff[i*myIm_Width + j].r = (int)(temp_buff[i*myIm_Width + j].r*1.35);
 		}
 	}
@@ -442,26 +458,30 @@ void red_intensify(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_
 void green_intensify(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 	int i,j;
 	//Go through each pixel in image...
-	for (i = y1; i < myIm_Height; i++) {
-		for (j = x1; j < myIm_Width; j++) {
+	for (i = y1; i < global.y2; i++) {
+		for (j = x1; j < global.x2; j++) {
 			temp_buff[i*myIm_Width + j].g = (int)(temp_buff[i*myIm_Width + j].g*1.2);
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);//Free unused memory
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
 void blue_intensify(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 	int i,j;
 	//Go through each pixel in image...
-	for (i = y1; i < myIm_Height; i++) {
-		for (j = x1; j < myIm_Width; j++) {
+	for (i = y1; i < global.y2; i++) {
+		for (j = x1; j < global.x2; j++) {
 			temp_buff[i*myIm_Width + j].b = (int)(temp_buff[i*myIm_Width + j].b*1.2);
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);//Free unused memory
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
@@ -536,60 +556,76 @@ void quantize_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myI
 	}
 
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);//Free unused memory
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
 void sine_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 	//Go through each pixel in image and multiply r values by the sin of themselves, g values by cosine of themselves and b values by tan of themselves
 	//eg. red = red*sin(red)
-	for (int i = y1; i < myIm_Height; i++) {
-		for (int j = x1; j < myIm_Width; j++) {
+	for (int i = y1; i < global.y2; i++) {
+		for (int j = x1; j < global.x2; j++) {
 			temp_buff[i*myIm_Width + j].r = (int)abs((temp_buff[i*myIm_Width + j].r *tan(temp_buff[i*myIm_Width + j].r)));
 			temp_buff[i*myIm_Width + j].g = (int)abs((temp_buff[i*myIm_Width + j].g *sin(temp_buff[i*myIm_Width + j].g)));
 			temp_buff[i*myIm_Width + j].b = (int)abs((temp_buff[i*myIm_Width + j].b *cos(temp_buff[i*myIm_Width + j].b)));
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);//Free unused memory
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
 void tan_filter(pixel* work_buff, pixel* temp_buff, int x1, int y1, int myIm_Width, int myIm_Height){
 	//Go through each pixel in image and multiply rgb values by the tangent of themselves
 	//eg. red = red*tan(red)
-	for (int i = y1; i < myIm_Height; i++) {
-		for (int j = x1; j < myIm_Width; j++) {
+	for (int i = y1; i < global.y2; i++) {
+		for (int j = x1; j < global.x2; j++) {
 			temp_buff[i*myIm_Width + j].r = (int)abs((temp_buff[i*myIm_Width + j].r *tan(temp_buff[i*myIm_Width + j].r)));
 			temp_buff[i*myIm_Width + j].g = (int)abs((temp_buff[i*myIm_Width + j].g *tan(temp_buff[i*myIm_Width + j].g)));
 			temp_buff[i*myIm_Width + j].b = (int)abs((temp_buff[i*myIm_Width + j].b *tan(temp_buff[i*myIm_Width + j].b)));
 		}
 	}
 	//Write finalized changes to display buffer
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.temp_buff);
+	free(temp);//Free unused memory
 	glutPostRedisplay();	// Tell glut that the image has been updated and needs to be redrawn
 }
 
 //Resets image to the unfiltered original
 void reset_image(){
+	pixel* temp = global.work_buff;
 	global.work_buff = deep_copy(global.save_buff);
+	free(temp);//Free unused memory
+	temp = global.temp_buff;
 	global.temp_buff = deep_copy(global.save_buff);
+	free(temp);//Also free unused memory
 	glutPostRedisplay();
 }
-
+//Helpter function for area select
 //Sets x1,y1 coordinates to left mouse click coordinates
 void set_coordinates(int button, int state, int x, int y){
 	int count = 0;
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
-		if(count == 0){
+		if(global.count == 0){
 			global.x1 = x;
-			global.y1 = global.h-y-35;
-			count++;
+			global.y1 = global.h-y-60;
+			global.count++;
+			//std::cout<<"X2: "<<global.x2<<std::endl;
+			//std::cout<<"Y2: "<<global.y2<<std::endl;
 		}
-		else if(count == 1){
+		else if(global.count == 1){
 			global.x2 = x;
-			global.y2 = global.h-y;
-			count++;
+			global.y2 = global.h-y-60;
+			global.count++;
+			std::cout<<"X1: "<<global.x1<<std::endl;
+			std::cout<<"Y1: "<<global.y1<<std::endl;
+			std::cout<<"X2: "<<global.x2<<std::endl;
+			std::cout<<"Y2: "<<global.y2<<std::endl;
 		}
 		if (global.x1 > global.x2){
 			int temp_x = global.x1;
@@ -603,6 +639,7 @@ void set_coordinates(int button, int state, int x, int y){
 		}
 	}
 }
+//Helper function for area select
 //Sets x2,y2 coordinates to left mouse click coordinates
 void set_coordinates2(int button, int state, int x, int y){
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
@@ -610,10 +647,10 @@ void set_coordinates2(int button, int state, int x, int y){
 		global.y2 = global.h-y;
 	}
 }
-
+//Selects area of screen to be filtered
 void area_select(){
 	glutMouseFunc(set_coordinates);
-	if (global.x1 > global.x2){
+	/*if (global.x1 > global.x2){
 		int temp_x = global.x1;
 		global.x1 = global.x2;
 		global.x2 = temp_x;
@@ -622,7 +659,7 @@ void area_select(){
 		int temp_y = global.y1;
 		global.y1 = global.y2;
 		global.y2 = temp_y;
-	}
+	}*/
 }
 
 //Resets rectangular filter area to being the entire image
@@ -631,6 +668,7 @@ void reset_filter_area(){
 	global.y1 = 0;
 	global.x2 = global.w;
 	global.y2 = global.h;
+	global.count = 0;
 }
 
 /*glut keyboard function*/
@@ -654,26 +692,27 @@ void keyboard(unsigned char key, int x, int y)
 		break;
 	case 'g':
 	case 'G':
-		greyscale_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+		greyscale_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 		break;
 	case 'm':
 	case 'M':
-		monochrome_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+		monochrome_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 		break;
 	case 'n':
 	case 'N':
-		ntsc_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+		ntsc_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 		break;
 	case 'c':
 	case 'C':
-		swap_channel(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+		swap_channel(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 		break;
 	case 'p':
 	case 'P':
-		pure_red_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+		pure_red_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 		break;
 	case 'a':
 	case 'A':
+		reset_filter_area();
 		area_select();
 		break;
 	case 'k':
@@ -692,76 +731,83 @@ void menuFunc(int value){
 			break;
 		case MENU_SAVE:
 			printf("SAVING IMAGE: backup.tif\n");
-			write_img("backup.tif", global.work_buff, global.w, global.h);
+			write_img("saved_image.tif", global.work_buff, global.w, global.h);
 			break;
 		case MENU_RESET:
 			reset_image();
 			break;
+		case MENU_AREA:
+			reset_filter_area();
+			area_select();
+			break;
+		case MENU_RESET_AREA:
+			reset_filter_area();
+			break;
 		case MENU_GREY:
-			greyscale_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			greyscale_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 			break;
 		case MENU_MONO:
-			monochrome_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			monochrome_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 			break;
 		case MENU_NTSC:
-			ntsc_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			ntsc_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 			break;
 		case MENU_SWAP:
-			swap_channel(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			swap_channel(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 			break;
 		case MENU_PURE_RED:
-			pure_red_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			pure_red_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 			break;
 		case MENU_PURE_GREEN:
-			pure_green_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			pure_green_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 			break;
 		case MENU_PURE_BLUE:
-			pure_blue_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			pure_blue_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 			break;
 		case MENU_INTENSE_RED:
-			red_intensify(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			red_intensify(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 			break;
 		case MENU_INTENSE_GREEN:
-			green_intensify(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			green_intensify(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 			break;
 		case MENU_INTENSE_BLUE:
-			blue_intensify(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			blue_intensify(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 			break;
 		case MENU_MAX:
-			max_min_intensity(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,true);
+			max_min_intensity(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h,true);
 			break;
 		case MENU_MIN:
-			max_min_intensity(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,false);
+			max_min_intensity(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h,false);
 			break;
 		case MENU_BLUR:
 			{
 				int kernel[] = {1,1,1,1,1,1,1,1,1};
-				for(int i=0;i<10;i++)convolutional_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,kernel);
+				for(int i=0;i<10;i++)convolutional_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h,kernel);
 			}
 			break;
 		case MENU_HOR:
 			{
 				int kernel[] = {1,2,1,0,0,0,-1,-2,-1}; 
-				convolutional_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,kernel);
+				convolutional_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h,kernel);
 			}
 			break;
 		case MENU_VER:
 			{
 				int kernel[] = {1,0,-1,2,0,-2,1,0,-1}; 
-				convolutional_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2,kernel);	
+				convolutional_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h,kernel);	
 			}
 			break;
 		case MENU_QUANT:
-			quantize_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2, false);
+			quantize_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h, false);
 			break;
 		case MENU_QUANT_RAND:
-			quantize_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2, true);
+			quantize_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h, true);
 			break;
 		case MENU_SIN:
-			sine_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			sine_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 			break;
 		case MENU_TAN:
-			tan_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.x2, global.y2);
+			tan_filter(global.work_buff, global.temp_buff, global.x1, global.y1, global.w, global.h);
 			break;
 	}
 }//menuFunc
@@ -794,7 +840,7 @@ void init_menu()
 	glutAddMenuEntry("Pure Green Filter", MENU_PURE_GREEN);
 	glutAddMenuEntry("Pure Blue Filter", MENU_PURE_BLUE);
 
-	int sub_menu = glutCreateMenu(&menuFunc);
+	int filter_menu = glutCreateMenu(&menuFunc);
 	glutAddMenuEntry("Greyscale Filter", MENU_GREY);
 	glutAddMenuEntry("Monochrome Filter", MENU_MONO);
 	glutAddMenuEntry("NTSC Filter", MENU_NTSC);
@@ -808,8 +854,13 @@ void init_menu()
 	glutAddSubMenu("Pure RGB Filter", pure_filter);
 	glutAddSubMenu("RGB Intensify Filter", intensify_filter);
 
+	int area_select = glutCreateMenu(&menuFunc);
+	glutAddMenuEntry("Select Filter Area",MENU_AREA);
+	glutAddMenuEntry("Reset Filter Area",MENU_RESET_AREA);
+
 	int main_menu = glutCreateMenu(&menuFunc);
-	glutAddSubMenu("Filter", sub_menu);
+	glutAddSubMenu("Area Select", area_select);
+	glutAddSubMenu("Filter", filter_menu);
 	glutAddMenuEntry("Reset", MENU_RESET);
 	glutAddMenuEntry("Save", MENU_SAVE);
 	glutAddMenuEntry("Quit", MENU_QUIT);
@@ -844,8 +895,6 @@ int main(int argc, char** argv){
 
 	init_menu();
 	show_keys();
-
 	glutMainLoop();
-
 	return 0;
 }
